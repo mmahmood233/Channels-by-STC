@@ -1,11 +1,12 @@
-import { LoginForm } from "@/features/auth/login-form";
+import { ForgotPasswordForm } from "@/features/auth/forgot-password-form";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <div className="w-full max-w-md animate-fade-in">
-      {/* Mobile logo (hidden on desktop where left panel shows it) */}
+      {/* Mobile logo */}
       <div className="mb-8 flex justify-center lg:hidden">
         <Image
           src="/images/logoSTC.png"
@@ -16,28 +17,28 @@ export default function LoginPage() {
         />
       </div>
 
+      {/* Back link */}
+      <Link
+        href="/login"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 transition-colors hover:text-brand-700"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to sign in
+      </Link>
+
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold tracking-tight text-surface-900">
-          Welcome back
+          Reset password
         </h2>
         <p className="mt-2 text-sm text-surface-500">
-          Sign in to your account to continue to the dashboard
+          Enter your email address and we&apos;ll send you a link to reset your
+          password.
         </p>
       </div>
 
-      {/* Login Form */}
-      <LoginForm />
-
-      {/* Forgot password link */}
-      <div className="mt-6 text-center">
-        <Link
-          href="/forgot-password"
-          className="text-sm font-medium text-brand-700 transition-colors hover:text-brand-800"
-        >
-          Forgot your password?
-        </Link>
-      </div>
+      {/* Form */}
+      <ForgotPasswordForm />
 
       {/* Footer */}
       <div className="mt-12 text-center">
