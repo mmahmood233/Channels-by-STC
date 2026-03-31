@@ -362,63 +362,63 @@ INSERT INTO stock_movements (store_id, device_id, movement_type, quantity, refer
 -- In production, these would reference real profile IDs.
 
 -- Completed transfer: Warehouse → Seef Branch
-INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, transfer_date, created_at) VALUES
-  ('f0000000-0000-0000-0000-000000000001',
-   'a0000000-0000-0000-0000-000000000001',
-   'b0000000-0000-0000-0000-000000000001',
-   'a0000000-0000-0000-0000-000000000001',  -- placeholder, would be a real profile ID
-   'completed',
-   'Monthly restock for Seef Branch',
-   '2026-02-01',
-   '2026-01-28');
+-- INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, transfer_date, created_at) VALUES
+--   ('f0000000-0000-0000-0000-000000000001',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'b0000000-0000-0000-0000-000000000001',
+--    'a0000000-0000-0000-0000-000000000001',  -- placeholder, would be a real profile ID
+--    'completed',
+--    'Monthly restock for Seef Branch',
+--    '2026-02-01',
+--    '2026-01-28');
 
-INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
-  ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 20),
-  ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000003', 15),
-  ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000009', 10);
+-- INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
+--   ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 20),
+--   ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000003', 15),
+--   ('f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000009', 10);
 
 -- In-transit transfer: Warehouse → Riffa Branch
-INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, created_at) VALUES
-  ('f0000000-0000-0000-0000-000000000002',
-   'a0000000-0000-0000-0000-000000000001',
-   'b0000000-0000-0000-0000-000000000003',
-   'a0000000-0000-0000-0000-000000000001',
-   'in_transit',
-   'Emergency restock - low stock alert for multiple devices',
-   '2026-03-25');
+-- INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, created_at) VALUES
+--   ('f0000000-0000-0000-0000-000000000002',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'b0000000-0000-0000-0000-000000000003',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'in_transit',NSERT INTO transfers (id, source_store_id, destination
+--    'Emergency restock - low stock alert for multiple devices',
+--    '2026-03-25');
 
-INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
-  ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000006', 10),
-  ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000007',  8),
-  ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000008', 12);
+-- INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
+--   ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000006', 10),
+--   ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000007',  8),
+--   ('f0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000008', 12);
 
--- Pending transfer: Warehouse → Isa Town Branch
-INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, created_at) VALUES
-  ('f0000000-0000-0000-0000-000000000003',
-   'a0000000-0000-0000-0000-000000000001',
-   'b0000000-0000-0000-0000-000000000004',
-   'a0000000-0000-0000-0000-000000000001',
-   'pending',
-   'Requested by Isa Town store manager - running low on popular devices',
-   '2026-03-28');
+-- -- Pending transfer: Warehouse → Isa Town Branch
+-- INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, created_at) VALUES
+--   ('f0000000-0000-0000-0000-000000000003',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'b0000000-0000-0000-0000-000000000004',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'pending',
+--    'Requested by Isa Town store manager - running low on popular devices',
+--    '2026-03-28');
 
-INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
-  ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', 15),
-  ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000002', 10),
-  ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000005',  5);
+-- INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
+--   ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', 15),
+--   ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000002', 10),
+--   ('f0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000005',  5);
 
--- Cancelled transfer
-INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, created_at) VALUES
-  ('f0000000-0000-0000-0000-000000000004',
-   'a0000000-0000-0000-0000-000000000001',
-   'b0000000-0000-0000-0000-000000000006',
-   'a0000000-0000-0000-0000-000000000001',
-   'cancelled',
-   'Cancelled - duplicate request',
-   '2026-03-10');
+-- -- Cancelled transfer
+-- INSERT INTO transfers (id, source_store_id, destination_store_id, requested_by, status, notes, created_at) VALUES
+--   ('f0000000-0000-0000-0000-000000000004',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'b0000000-0000-0000-0000-000000000006',
+--    'a0000000-0000-0000-0000-000000000001',
+--    'cancelled',
+--    'Cancelled - duplicate request',
+--    '2026-03-10');
 
-INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
-  ('f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003', 10);
+-- INSERT INTO transfer_items (transfer_id, device_id, quantity) VALUES
+--   ('f0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003', 10);
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
