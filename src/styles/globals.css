@@ -204,6 +204,15 @@ input:-webkit-autofill:focus {
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* Form label */
+.label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-surface-600);
+}
+
 /* Reusable form input */
 .input-field {
   width: 100%;
