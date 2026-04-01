@@ -204,6 +204,74 @@ export interface SettingRow {
   updated_at: string;
 }
 
+// ── View row types ─────────────────────────────────────────────────────────
+
+export interface CurrentInventoryViewRow {
+  inventory_id: string;
+  store_id: string;
+  store_name: string;
+  store_code: string;
+  is_warehouse: boolean;
+  device_id: string;
+  sku: string;
+  device_name: string;
+  brand: string;
+  category_name: string;
+  unit_price: number;
+  cost_price: number | null;
+  quantity: number;
+  low_stock_threshold: number;
+  stock_status: "in_stock" | "low_stock" | "out_of_stock";
+  updated_at: string;
+}
+
+export interface LowStockViewRow {
+  store_id: string;
+  store_name: string;
+  device_id: string;
+  device_name: string;
+  sku: string;
+  current_quantity: number;
+  threshold: number;
+  units_below_threshold: number;
+}
+
+export interface ForecastVsInventoryViewRow {
+  forecast_id: string;
+  device_id: string;
+  device_name: string;
+  store_id: string | null;
+  store_name: string | null;
+  forecast_period: string;
+  predicted_quantity: number;
+  current_stock: number;
+  stock_gap: number;
+  risk_level: "sufficient" | "at_risk" | "shortage_expected";
+  confidence_score: number | null;
+  model_version: string | null;
+}
+
+export interface MonthlySalesViewRow {
+  store_id: string;
+  store_name: string;
+  device_id: string;
+  device_name: string;
+  brand: string;
+  sale_month: string;
+  total_units_sold: number;
+  total_revenue: number;
+}
+
+export interface TopSellingDeviceViewRow {
+  device_id: string;
+  device_name: string;
+  brand: string;
+  image_url: string | null;
+  total_units_sold: number;
+  total_revenue: number;
+  total_transactions: number;
+}
+
 // ── Database type for Supabase client ──────────────────────────────────────
 
 export type Database = {
@@ -307,7 +375,21 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      current_inventory_view: {
+        Row: CurrentInventoryViewRow;
+      };
+      low_stock_view: {
+        Row: LowStockViewRow;
+      };
+      forecast_vs_inventory_view: {
+        Row: ForecastVsInventoryViewRow;
+      };
+      monthly_sales_view: {
+        Row: MonthlySalesViewRow;
+      };
+      top_selling_devices_view: {
+        Row: TopSellingDeviceViewRow;
+      };
     };
     Functions: {
       [_ in never]: never;

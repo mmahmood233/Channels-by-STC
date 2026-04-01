@@ -3,22 +3,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import type { UserRole } from "@/types";
 
-// Map route segments to human-readable titles
-function getPageTitle(pathname?: string): string {
-  if (!pathname) return "Dashboard";
-  if (pathname.startsWith("/dashboard")) return "Dashboard";
-  if (pathname.startsWith("/devices")) return "Devices";
-  if (pathname.startsWith("/inventory")) return "Inventory";
-  if (pathname.startsWith("/sales")) return "Sales";
-  if (pathname.startsWith("/transfers")) return "Transfers";
-  if (pathname.startsWith("/alerts")) return "Alerts";
-  if (pathname.startsWith("/forecasts")) return "Forecasts";
-  if (pathname.startsWith("/chatbot")) return "AI Chatbot";
-  if (pathname.startsWith("/users")) return "Users";
-  if (pathname.startsWith("/settings")) return "Settings";
-  return "Dashboard";
-}
-
 export default async function DashboardLayout({
   children,
 }: {
@@ -71,7 +55,6 @@ export default async function DashboardLayout({
       userRole={profile.role as UserRole}
       userName={profile.full_name ?? "User"}
       userEmail={profile.email ?? session.user.email ?? ""}
-      pageTitle="Dashboard"
       alertCount={alertCount ?? 0}
     >
       {children}

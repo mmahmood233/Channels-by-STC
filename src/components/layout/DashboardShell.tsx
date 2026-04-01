@@ -10,7 +10,6 @@ interface DashboardShellProps {
   userRole: UserRole;
   userName: string;
   userEmail: string;
-  pageTitle: string;
   alertCount?: number;
 }
 
@@ -19,7 +18,6 @@ export function DashboardShell({
   userRole,
   userName,
   userEmail,
-  pageTitle,
   alertCount = 0,
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -37,7 +35,6 @@ export function DashboardShell({
       {/* Main content column */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
-          pageTitle={pageTitle}
           onMobileMenuOpen={() => setMobileOpen(true)}
           alertCount={alertCount}
         />
