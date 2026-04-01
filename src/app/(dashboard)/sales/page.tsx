@@ -62,7 +62,7 @@ export default async function SalesPage({
     sales?.reduce(
       (sum, s) =>
         sum +
-        ((s.sale_items as { quantity: number }[]) ?? []).reduce(
+        ((s.sale_items as unknown as { quantity: number }[]) ?? []).reduce(
           (a, i) => a + i.quantity,
           0
         ),
@@ -112,7 +112,7 @@ export default async function SalesPage({
               </thead>
               <tbody className="divide-y divide-surface-50">
                 {sales.map((sale) => {
-                  const items = (sale.sale_items as {
+                  const items = (sale.sale_items as unknown as {
                     id: string;
                     quantity: number;
                     unit_price: number;
@@ -130,11 +130,11 @@ export default async function SalesPage({
                       </Td>
                       {(isAdmin || isWarehouse) && (
                         <Td>
-                          {(sale.stores as { name: string } | null)?.name ?? "—"}
+                          {(sale.stores as unknown as { name: string } | null)?.name ?? "—"}
                         </Td>
                       )}
                       <Td>
-                        {(sale.profiles as { full_name: string } | null)?.full_name ?? "—"}
+                        {(sale.profiles as unknown as { full_name: string } | null)?.full_name ?? "—"}
                       </Td>
                       <Td>
                         <div className="flex flex-col gap-0.5">

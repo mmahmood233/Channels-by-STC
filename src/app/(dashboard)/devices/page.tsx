@@ -98,7 +98,7 @@ export default async function DevicesPage({
                     </Td>
                     <Td className="font-medium text-surface-900">{d.name}</Td>
                     <Td>{d.brand}</Td>
-                    <Td>{(d.categories as { name: string } | null)?.name ?? "—"}</Td>
+                    <Td>{(d.categories as unknown as { name: string } | null)?.name ?? "—"}</Td>
                     <Td className="font-semibold">{formatCurrency(Number(d.unit_price))}</Td>
                     <Td className="text-surface-500">
                       {d.cost_price ? formatCurrency(Number(d.cost_price)) : "—"}

@@ -108,10 +108,10 @@ export default async function TransfersPage({
                     : t.status === "cancelled" ? "danger"
                     : t.status === "pending" ? "warning"
                     : "info";
-                  const from = (t.from_store as { name: string } | null)?.name;
-                  const to = (t.to_store as { name: string } | null)?.name;
-                  const requester = (t.requester as { full_name: string } | null)?.full_name;
-                  const items = (t.transfer_items as {
+                  const from = (t.from_store as unknown as { name: string } | null)?.name;
+                  const to = (t.to_store as unknown as { name: string } | null)?.name;
+                  const requester = (t.requester as unknown as { full_name: string } | null)?.full_name;
+                  const items = (t.transfer_items as unknown as {
                     id: string;
                     quantity: number;
                     devices: { name: string; sku: string } | null;

@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                   <p className="truncate text-xs text-surface-400">
                     {formatDate(sale.sale_date)}
                     {isAdmin && sale.stores
-                      ? ` · ${(sale.stores as { name: string }).name}`
+                      ? ` · ${(sale.stores as unknown as { name: string }).name}`
                       : ""}
                   </p>
                 </div>
@@ -299,8 +299,8 @@ export default async function DashboardPage() {
                   : t.status === "pending"
                   ? "warning"
                   : "info";
-              const from = (t.from_store as { name: string } | null)?.name;
-              const to = (t.to_store as { name: string } | null)?.name;
+              const from = (t.from_store as unknown as { name: string } | null)?.name;
+              const to = (t.to_store as unknown as { name: string } | null)?.name;
               return (
                 <PanelRow key={t.id}>
                   <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-50">

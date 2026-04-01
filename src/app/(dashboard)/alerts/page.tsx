@@ -149,16 +149,16 @@ export default async function AlertsPage({
                           </div>
                         </div>
                       </Td>
-                      <Td>{(alert.stores as { name: string } | null)?.name ?? "—"}</Td>
+                      <Td>{(alert.stores as unknown as { name: string } | null)?.name ?? "—"}</Td>
                       <Td>
-                        {(alert.devices as { name: string; sku: string } | null)
+                        {(alert.devices as unknown as { name: string; sku: string } | null)
                           ? (
                             <div>
                               <p className="font-medium">
-                                {(alert.devices as { name: string }).name}
+                                {(alert.devices as unknown as { name: string }).name}
                               </p>
                               <code className="text-xs text-surface-400">
-                                {(alert.devices as { sku: string }).sku}
+                                {(alert.devices as unknown as { sku: string }).sku}
                               </code>
                             </div>
                           )
