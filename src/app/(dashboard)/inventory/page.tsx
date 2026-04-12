@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { Package, AlertTriangle } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -26,11 +27,29 @@ export default async function InventoryPage({
   const isWarehouse = profile.role === "warehouse_manager";
 
   // Stores for filter (admin/warehouse sees all)
-  const { data: stores } = await supabase
+  const { data: storesRaw } = await supabase
     .from("stores")
-    .select("id, name")
+    .select("id, name, is_warehouse")
     .eq("status", "active")
     .order("name");
+  const stores = storesRaw ?? [];
+
+  // Source store for the transfer modal
+  const sourceStoreId = (profile.store_id as string | null) ??
+    (stores.find((s) => s.is_warehouse)?.id ?? stores[0]?.id ?? "");
+  const { data: sourceInventory } = await supabase
+    .from("current_inventory_view")
+    .select("device_id, device_name, brand, sku, quantity")
+    .eq("store_id", sourceStoreId)
+    .gt("quantity", 0)
+    .order("device_name");
+  const modalInventory = (sourceInventory ?? []).map((r) => ({
+    id: r.device_id as string, name: r.device_name as string, brand: r.brand as string,
+    sku: r.sku as string, quantity: r.quantity as number,
+  }));
+  const modalStores = stores.map((s) => ({
+    id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
+  }));
 
   // Build query on view
   let query = supabase
@@ -58,6 +77,18 @@ export default async function InventoryPage({
 
   return (
     <div className="space-y-6">
+      {/* Header action */}
+      {sourceStoreId && (
+        <div className="flex justify-end">
+          <NewTransferModal
+            currentStoreId={sourceStoreId}
+            allStores={modalStores}
+            inventoryAtCurrentStore={modalInventory}
+            userRole={profile.role as string}
+          />
+        </div>
+      )}
+
       {/* Summary pills */}
       {(outCount > 0 || lowCount > 0) && (
         <div className="flex flex-wrap gap-3">
@@ -82,7 +113,7 @@ export default async function InventoryPage({
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
-        {(isAdmin || isWarehouse) && stores && stores.length > 0 && (
+        {(isAdmin || isWarehouse) && stores.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             <FilterChip href="/inventory" active={!params.store} label="All Stores" />
             {stores.map((s) => (

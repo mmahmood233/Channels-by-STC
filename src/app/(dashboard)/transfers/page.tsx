@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { ArrowLeftRight } from "lucide-react";
 import { formatDate } from "@/utils/format";
 import { TRANSFER_STATUS_CONFIG } from "@/constants";
@@ -30,9 +31,26 @@ export default async function TransfersPage({
 
   const { data: stores } = await supabase
     .from("stores")
-    .select("id, name")
+    .select("id, name, is_warehouse")
     .eq("status", "active")
     .order("name");
+
+  // Inventory at user's store for the modal
+  const sourceStoreId = (profile.store_id as string | null) ??
+    (stores?.find((s) => s.is_warehouse)?.id ?? stores?.[0]?.id ?? "");
+  const { data: sourceInventory } = await supabase
+    .from("current_inventory_view")
+    .select("device_id, device_name, brand, sku, quantity")
+    .eq("store_id", sourceStoreId)
+    .gt("quantity", 0)
+    .order("device_name");
+  const modalInventory = (sourceInventory ?? []).map((r) => ({
+    id: r.device_id as string, name: r.device_name as string, brand: r.brand as string,
+    sku: r.sku as string, quantity: r.quantity as number,
+  }));
+  const modalStores = (stores ?? []).map((s) => ({
+    id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
+  }));
 
   let query = supabase
     .from("transfers")
@@ -71,6 +89,16 @@ export default async function TransfersPage({
 
   return (
     <div className="space-y-6">
+      {/* Header with action */}
+      <div className="flex justify-end">
+        <NewTransferModal
+          currentStoreId={sourceStoreId}
+          allStores={modalStores}
+          inventoryAtCurrentStore={modalInventory}
+          userRole={profile.role as string}
+        />
+      </div>
+
       {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2">
         <FilterChip href="/transfers" active={!params.status} label="All" count={transfers?.length ?? 0} />

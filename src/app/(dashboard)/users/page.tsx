@@ -6,6 +6,7 @@ import { Users } from "lucide-react";
 import { formatDateTime } from "@/utils/format";
 import { ROLE_LABELS } from "@/constants";
 import { UserRowActions } from "@/features/users/UserRowActions";
+import { CreateUserModal } from "@/features/users/CreateUserModal";
 import { cn } from "@/utils/cn";
 import type { UserRole } from "@/types";
 
@@ -39,6 +40,12 @@ export default async function UsersPage({
 
   const { data: users } = await query;
 
+  const { data: storesRaw } = await supabase
+    .from("stores").select("id, name, is_warehouse").eq("status", "active").order("name");
+  const stores = (storesRaw ?? []).map((s) => ({
+    id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
+  }));
+
   const roleVariant: Record<UserRole, "purple" | "info" | "success"> = {
     admin: "purple",
     store_manager: "info",
@@ -47,6 +54,11 @@ export default async function UsersPage({
 
   return (
     <div className="space-y-6">
+      {/* Add user button */}
+      <div className="flex justify-end">
+        <CreateUserModal stores={stores} />
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SummaryCard label="Total Users" value={String(users?.length ?? 0)} />

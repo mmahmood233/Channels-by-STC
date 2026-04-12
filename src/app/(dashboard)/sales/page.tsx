@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { NewSaleModal } from "@/features/sales/NewSaleModal";
 import { ShoppingCart } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -32,6 +33,17 @@ export default async function SalesPage({
     .eq("is_warehouse", false)
     .eq("status", "active")
     .order("name");
+
+  // Devices for the New Sale modal (store managers and admins can record sales)
+  const canSell = !isWarehouse;
+  const { data: devicesForModal } = canSell
+    ? await supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name")
+    : { data: null };
+  const modalDevices = (devicesForModal ?? []).map((d) => ({
+    id: d.id as string, name: d.name as string, brand: d.brand as string,
+    sku: d.sku as string, unit_price: Number(d.unit_price),
+  }));
+  const saleStoreId = (profile.store_id as string | null) ?? (stores?.[0]?.id ?? "");
 
   let query = supabase
     .from("sales")
@@ -71,6 +83,13 @@ export default async function SalesPage({
 
   return (
     <div className="space-y-6">
+      {/* Header with action */}
+      {canSell && saleStoreId && (
+        <div className="flex justify-end">
+          <NewSaleModal storeId={saleStoreId} devices={modalDevices} />
+        </div>
+      )}
+
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <SummaryCard label="Total Sales" value={String(sales?.length ?? 0)} />
