@@ -1,8 +1,10 @@
 "use client";
 
-import { Menu, Bell, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { cn } from "@/utils/cn";
+import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
+import { NotificationCenter } from "@/features/notifications/NotificationCenter";
+import type { UserRole } from "@/types";
 
 function deriveTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard")) return "Dashboard";
@@ -22,9 +24,12 @@ function deriveTitle(pathname: string): string {
 interface TopbarProps {
   onMobileMenuOpen: () => void;
   alertCount?: number;
+  userId: string;
+  storeId: string | null;
+  userRole: UserRole;
 }
 
-export function Topbar({ onMobileMenuOpen, alertCount = 0 }: TopbarProps) {
+export function Topbar({ onMobileMenuOpen, alertCount = 0, userId, storeId, userRole }: TopbarProps) {
   const pathname = usePathname();
   const pageTitle = deriveTitle(pathname);
 
@@ -56,23 +61,16 @@ export function Topbar({ onMobileMenuOpen, alertCount = 0 }: TopbarProps) {
         />
       </div>
 
-      {/* Alerts bell */}
-      <button
-        className="relative rounded-xl p-2 text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-900"
-        aria-label={`${alertCount} active alerts`}
-      >
-        <Bell className="h-5 w-5" />
-        {alertCount > 0 && (
-          <span
-            className={cn(
-              "absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent-500 text-[10px] font-bold text-white",
-              alertCount > 9 && "w-5 px-0.5"
-            )}
-          >
-            {alertCount > 9 ? "9+" : alertCount}
-          </span>
-        )}
-      </button>
+      {/* Dark mode toggle */}
+      <DarkModeToggle />
+
+      {/* Notification center (replaces static bell) */}
+      <NotificationCenter
+        userId={userId}
+        storeId={storeId}
+        userRole={userRole}
+        initialCount={alertCount}
+      />
     </header>
   );
 }

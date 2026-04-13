@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   // Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, email")
+    .select("full_name, role, email, store_id")
     .eq("id", session.user.id)
     .single();
 
@@ -56,6 +56,8 @@ export default async function DashboardLayout({
       userName={profile.full_name ?? "User"}
       userEmail={profile.email ?? session.user.email ?? ""}
       alertCount={alertCount ?? 0}
+      userId={session.user.id}
+      storeId={(profile.store_id as string | null) ?? null}
     >
       {children}
     </DashboardShell>

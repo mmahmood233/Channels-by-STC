@@ -163,6 +163,37 @@
   }
 }
 
+/* ── Dark Mode Overrides ──────────────────────────────────────────────────── */
+
+.dark {
+  --color-surface-50:  #0f172a;
+  --color-surface-100: #1e293b;
+  --color-surface-200: #334155;
+  --color-surface-300: #475569;
+  --color-surface-400: #64748b;
+  --color-surface-500: #94a3b8;
+  --color-surface-600: #cbd5e1;
+  --color-surface-700: #e2e8f0;
+  --color-surface-800: #f1f5f9;
+  --color-surface-900: #f8fafc;
+  --color-surface-950: #ffffff;
+  --shadow-soft: 0 2px 15px -3px rgba(0,0,0,0.4), 0 10px 20px -2px rgba(0,0,0,0.3);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.dark .input-field {
+  background: var(--color-surface-100);
+  border-color: var(--color-surface-200);
+  color: var(--color-surface-900);
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface-100) inset !important;
+  -webkit-text-fill-color: var(--color-surface-900) !important;
+}
+
 /* ── Base Styles ──────────────────────────────────────────────────────────── */
 
 * {

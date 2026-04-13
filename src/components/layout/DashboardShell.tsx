@@ -11,6 +11,8 @@ interface DashboardShellProps {
   userName: string;
   userEmail: string;
   alertCount?: number;
+  userId: string;
+  storeId: string | null;
 }
 
 export function DashboardShell({
@@ -19,6 +21,8 @@ export function DashboardShell({
   userName,
   userEmail,
   alertCount = 0,
+  userId,
+  storeId,
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -37,6 +41,9 @@ export function DashboardShell({
         <Topbar
           onMobileMenuOpen={() => setMobileOpen(true)}
           alertCount={alertCount}
+          userId={userId}
+          storeId={storeId}
+          userRole={userRole}
         />
 
         {/* Scrollable page content */}
