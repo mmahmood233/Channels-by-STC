@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewSaleModal } from "@/features/sales/NewSaleModal";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { ShoppingCart } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -83,12 +84,30 @@ export default async function SalesPage({
 
   return (
     <div className="space-y-6">
-      {/* Header with action */}
-      {canSell && saleStoreId && (
-        <div className="flex justify-end">
+      {/* Header actions */}
+      <div className="flex justify-end gap-2">
+        {sales && sales.length > 0 && (
+          <ExportCsvButton
+            filename="sales-report.csv"
+            headers={["Date", "Store", "Sold By", "Total Amount (BHD)", "Units", "Notes"]}
+            rows={(sales ?? []).map((sale) => {
+              const items = (sale.sale_items as unknown as { quantity: number }[]) ?? [];
+              const units = items.reduce((a, i) => a + i.quantity, 0);
+              return [
+                formatDate(sale.sale_date),
+                (sale.stores as unknown as { name: string } | null)?.name ?? "",
+                (sale.profiles as unknown as { full_name: string } | null)?.full_name ?? "",
+                Number(sale.total_amount).toFixed(3),
+                units,
+                sale.notes ?? "",
+              ];
+            })}
+          />
+        )}
+        {canSell && saleStoreId && (
           <NewSaleModal storeId={saleStoreId} devices={modalDevices} />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

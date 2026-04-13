@@ -45,6 +45,12 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     roles: ["admin", "store_manager", "warehouse_manager"],
   },
   {
+    label: "Analytics",
+    href: ROUTES.ANALYTICS,
+    icon: "BarChart2",
+    roles: ["admin", "warehouse_manager"],
+  },
+  {
     label: "Chatbot",
     href: ROUTES.CHATBOT,
     icon: "MessageSquare",

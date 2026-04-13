@@ -12,6 +12,7 @@ function deriveTitle(pathname: string): string {
   if (pathname.startsWith("/transfers")) return "Transfers";
   if (pathname.startsWith("/alerts")) return "Alerts";
   if (pathname.startsWith("/forecasts")) return "Forecasts";
+  if (pathname.startsWith("/analytics")) return "Analytics";
   if (pathname.startsWith("/chatbot")) return "AI Chatbot";
   if (pathname.startsWith("/users")) return "Users";
   if (pathname.startsWith("/settings")) return "Settings";

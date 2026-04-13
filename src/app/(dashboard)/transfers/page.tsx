@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { ArrowLeftRight } from "lucide-react";
 import { formatDate } from "@/utils/format";
 import { TRANSFER_STATUS_CONFIG } from "@/constants";
@@ -89,8 +90,25 @@ export default async function TransfersPage({
 
   return (
     <div className="space-y-6">
-      {/* Header with action */}
-      <div className="flex justify-end">
+      {/* Header actions */}
+      <div className="flex justify-end gap-2">
+        {transfers && transfers.length > 0 && (
+          <ExportCsvButton
+            filename="transfers-report.csv"
+            headers={["Date", "From", "To", "Status", "Requested By", "Items"]}
+            rows={(transfers ?? []).map((t) => {
+              const from = (t.from_store as unknown as { name: string } | null)?.name ?? "";
+              const to = (t.to_store as unknown as { name: string } | null)?.name ?? "";
+              const requester = (t.requester as unknown as { full_name: string } | null)?.full_name ?? "";
+              const items = (t.transfer_items as unknown as { quantity: number; devices: { name: string } | null }[]) ?? [];
+              const itemsSummary = items.map(i => `${i.quantity}x ${i.devices?.name ?? "?"}`).join("; ");
+              return [
+                t.transfer_date ? formatDate(t.transfer_date) : formatDate(t.created_at),
+                from, to, t.status, requester, itemsSummary,
+              ];
+            })}
+          />
+        )}
         <NewTransferModal
           currentStoreId={sourceStoreId}
           allStores={modalStores}

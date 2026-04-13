@@ -63,6 +63,7 @@ export const ROUTES = {
   TRANSFERS: "/transfers",
   ALERTS: "/alerts",
   FORECASTS: "/forecasts",
+  ANALYTICS: "/analytics",
   CHATBOT: "/chatbot",
   USERS: "/users",
   SETTINGS: "/settings",

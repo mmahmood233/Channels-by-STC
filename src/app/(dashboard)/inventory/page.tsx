@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { Package, AlertTriangle } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -77,17 +78,33 @@ export default async function InventoryPage({
 
   return (
     <div className="space-y-6">
-      {/* Header action */}
-      {sourceStoreId && (
-        <div className="flex justify-end">
+      {/* Header actions */}
+      <div className="flex justify-end gap-2">
+        {inventory && inventory.length > 0 && (
+          <ExportCsvButton
+            filename="inventory-report.csv"
+            headers={["Store", "SKU", "Device", "Brand", "Category", "Qty", "Threshold", "Status"]}
+            rows={(inventory ?? []).map((row) => [
+              row.store_name,
+              row.sku,
+              row.device_name,
+              row.brand,
+              row.category_name,
+              row.quantity,
+              row.low_stock_threshold,
+              row.stock_status,
+            ])}
+          />
+        )}
+        {sourceStoreId && (
           <NewTransferModal
             currentStoreId={sourceStoreId}
             allStores={modalStores}
             inventoryAtCurrentStore={modalInventory}
             userRole={profile.role as string}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Summary pills */}
       {(outCount > 0 || lowCount > 0) && (
