@@ -1,22 +1,15 @@
 import { ResetPasswordForm } from "@/features/auth/reset-password-form";
-import Image from "next/image";
+import { KeyRound } from "lucide-react";
 
 export default function ResetPasswordPage() {
   return (
-    <div className="w-full max-w-md animate-fade-in">
-      {/* Mobile logo */}
-      <div className="mb-8 flex justify-center lg:hidden">
-        <Image
-          src="/images/logoSTC.png"
-          alt="Channels by stc"
-          width={180}
-          height={45}
-          priority
-        />
-      </div>
+    <div className="animate-fade-in space-y-8">
 
       {/* Header */}
-      <div className="mb-8">
+      <div>
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 shadow-lg shadow-brand-600/30">
+          <KeyRound className="h-5 w-5 text-white" />
+        </div>
         <h2 className="text-2xl font-bold tracking-tight text-surface-900">
           Set new password
         </h2>
@@ -25,14 +18,14 @@ export default function ResetPasswordPage() {
         </p>
       </div>
 
-      <ResetPasswordForm />
-
-      <div className="mt-12 text-center">
-        <p className="text-xs text-surface-400">
-          &copy; {new Date().getFullYear()} Channels by stc. All rights
-          reserved.
-        </p>
+      {/* Card */}
+      <div className="rounded-2xl border border-surface-100 bg-white p-7 shadow-soft">
+        <ResetPasswordForm />
       </div>
+
+      <p className="text-center text-xs text-surface-400">
+        © {new Date().getFullYear()} Channels by stc · Smart Inventory System
+      </p>
     </div>
   );
 }

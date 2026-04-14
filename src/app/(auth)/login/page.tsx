@@ -1,51 +1,42 @@
 import { LoginForm } from "@/features/auth/login-form";
-import Image from "next/image";
 import Link from "next/link";
+import { Lock } from "lucide-react";
 
 export default function LoginPage() {
   return (
-    <div className="w-full max-w-md animate-fade-in">
-      {/* Mobile logo (hidden on desktop where left panel shows it) */}
-      <div className="mb-8 flex justify-center lg:hidden">
-        <Image
-          src="/images/logoSTC.png"
-          alt="Channels by stc"
-          width={180}
-          height={45}
-          priority
-        />
-      </div>
+    <div className="animate-fade-in space-y-8">
 
       {/* Header */}
-      <div className="mb-8">
+      <div>
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 shadow-lg shadow-brand-600/30">
+          <Lock className="h-5 w-5 text-white" />
+        </div>
         <h2 className="text-2xl font-bold tracking-tight text-surface-900">
-          Welcome back
+          Sign in to your account
         </h2>
         <p className="mt-2 text-sm text-surface-500">
-          Sign in to your account to continue to the dashboard
+          Enter your credentials to access the dashboard
         </p>
       </div>
 
-      {/* Login Form */}
-      <LoginForm />
+      {/* Card */}
+      <div className="rounded-2xl border border-surface-100 bg-white p-7 shadow-soft">
+        <LoginForm />
 
-      {/* Forgot password link */}
-      <div className="mt-6 text-center">
-        <Link
-          href="/forgot-password"
-          className="text-sm font-medium text-brand-700 transition-colors hover:text-brand-800"
-        >
-          Forgot your password?
-        </Link>
+        <div className="mt-5 text-center">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-brand-700 transition-colors hover:text-brand-900"
+          >
+            Forgot your password?
+          </Link>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-12 text-center">
-        <p className="text-xs text-surface-400">
-          &copy; {new Date().getFullYear()} Channels by stc. All rights
-          reserved.
-        </p>
-      </div>
+      {/* Security note */}
+      <p className="text-center text-xs text-surface-400">
+        Protected by Supabase Auth · TLS encrypted
+      </p>
     </div>
   );
 }
