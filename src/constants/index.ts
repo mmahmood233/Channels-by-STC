@@ -64,6 +64,8 @@ export const ROUTES = {
   ALERTS: "/alerts",
   FORECASTS: "/forecasts",
   ANALYTICS: "/analytics",
+  AUDIT_LOGS: "/audit-logs",
+  RESTOCK: "/restock",
   CHATBOT: "/chatbot",
   USERS: "/users",
   SETTINGS: "/settings",
