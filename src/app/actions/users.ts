@@ -5,17 +5,17 @@ import { revalidatePath } from "next/cache";
 
 export async function updateUserStatus(userId: string, status: "active" | "inactive") {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (profile?.role !== "admin") return { error: "Permission denied" };
-  if (userId === session.user.id) return { error: "Cannot change your own status" };
+  if (userId === user.id) return { error: "Cannot change your own status" };
 
   const { error } = await supabase
     .from("profiles")
@@ -29,17 +29,17 @@ export async function updateUserStatus(userId: string, status: "active" | "inact
 
 export async function updateUserRole(userId: string, role: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (profile?.role !== "admin") return { error: "Permission denied" };
-  if (userId === session.user.id) return { error: "Cannot change your own role" };
+  if (userId === user.id) return { error: "Cannot change your own role" };
 
   const { error } = await supabase
     .from("profiles")
@@ -52,14 +52,13 @@ export async function updateUserRole(userId: string, role: string) {
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {
-  const { data: { session } } = await (await createServerSupabaseClient()).auth.getSession();
-  if (!session) return { error: "Unauthorized" };
-
   const supabaseCheck = await createServerSupabaseClient();
+  const { data: { user } } = await supabaseCheck.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
   const { data: profile } = await supabaseCheck
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (profile?.role !== "admin") return { error: "Permission denied" };

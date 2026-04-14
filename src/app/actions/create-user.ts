@@ -12,11 +12,11 @@ export async function createUser(data: {
 }) {
   // Only admins can create users
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { data: me } = await supabase
-    .from("profiles").select("role").eq("id", session.user.id).single();
+    .from("profiles").select("role").eq("id", user.id).single();
   if (me?.role !== "admin") return { error: "Permission denied" };
 
   // Create auth user via admin API

@@ -10,12 +10,9 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createServerSupabaseClient();
 
-  // Get authenticated session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/login");
   }
 
@@ -23,7 +20,7 @@ export default async function DashboardLayout({
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, role, email, store_id")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile) {
@@ -41,7 +38,7 @@ export default async function DashboardLayout({
     const { data: storeProfile } = await supabase
       .from("profiles")
       .select("store_id")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
     if (storeProfile?.store_id) {
       alertQuery = alertQuery.eq("store_id", storeProfile.store_id);
@@ -54,9 +51,9 @@ export default async function DashboardLayout({
     <DashboardShell
       userRole={profile.role as UserRole}
       userName={profile.full_name ?? "User"}
-      userEmail={profile.email ?? session.user.email ?? ""}
+      userEmail={profile.email ?? user.email ?? ""}
       alertCount={alertCount ?? 0}
-      userId={session.user.id}
+      userId={user.id}
       storeId={(profile.store_id as string | null) ?? null}
     >
       {children}

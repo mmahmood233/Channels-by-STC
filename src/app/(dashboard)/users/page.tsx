@@ -16,13 +16,13 @@ export default async function UsersPage({
   searchParams: Promise<{ role?: string; status?: string }>;
 }) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: me } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   // Admin-only page
@@ -135,7 +135,7 @@ export default async function UsersPage({
                       <UserRowActions
                         userId={user.id}
                         currentStatus={user.status}
-                        currentUserId={session.user.id}
+                        currentUserId={user.id}
                       />
                     </Td>
                   </tr>

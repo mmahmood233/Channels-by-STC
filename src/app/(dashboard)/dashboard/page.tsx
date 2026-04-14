@@ -6,19 +6,19 @@ import { WarehouseManagerDashboard } from "@/features/dashboard/WarehouseManager
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, store_id, full_name, stores(name)")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile) redirect("/login");
 
   const role = profile.role as string;
-  const userId = session.user.id;
+  const userId = user.id;
   const userName = (profile.full_name as string) ?? "User";
 
   if (role === "store_manager") {

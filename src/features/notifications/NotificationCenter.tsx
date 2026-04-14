@@ -74,6 +74,54 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // Load existing active alerts into the panel on mount
+  useEffect(() => {
+    async function loadInitial() {
+      let query = supabase
+        .from("alerts")
+        .select("id, title, alert_type, severity, current_quantity, created_at")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (isStore && storeId) query = query.eq("store_id", storeId);
+
+      const { data } = await query;
+      if (!data?.length) return;
+
+      const initial: Notification[] = data.map((row) => {
+        const r = row as {
+          id: string; title: string; alert_type: string;
+          severity: string; current_quantity: number | null; created_at: string;
+        };
+        if (r.alert_type === "out_of_stock") return {
+          id: `alert-${r.id}`, type: "out_of_stock" as NotifType,
+          title: "Out of Stock", body: r.title,
+          at: new Date(r.created_at), read: true, urgent: true,
+        };
+        if (r.alert_type === "low_stock") return {
+          id: `alert-${r.id}`, type: "low_stock" as NotifType,
+          title: "Low Stock Warning",
+          body: `${r.title}${r.current_quantity != null ? ` — ${r.current_quantity} units remaining` : ""}`,
+          at: new Date(r.created_at), read: true,
+        };
+        if (r.alert_type === "forecast_warning") return {
+          id: `alert-${r.id}`, type: "forecast_warning" as NotifType,
+          title: "Forecast Warning", body: r.title,
+          at: new Date(r.created_at), read: true,
+        };
+        return {
+          id: `alert-${r.id}`, type: "alert" as NotifType,
+          title: "System Alert", body: r.title,
+          at: new Date(r.created_at), read: true,
+        };
+      });
+
+      setNotifications(initial);
+    }
+    loadInitial();
+  }, [storeId, userRole]);
+
   function push(notif: Omit<Notification, "read">) {
     setNotifications((prev) => {
       // deduplicate by id

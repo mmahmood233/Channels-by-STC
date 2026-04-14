@@ -12,8 +12,8 @@ export default async function DevicesPage({
   searchParams: Promise<{ brand?: string; status?: string; cat?: string }>;
 }) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const params = await searchParams;
 

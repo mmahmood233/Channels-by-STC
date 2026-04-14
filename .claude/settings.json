@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls /Users/mohammed/Desktop/Channels-by-STC/src/app/\\\\\\(dashboard\\\\\\)/)"
+      "Bash(ls /Users/mohammed/Desktop/Channels-by-STC/src/app/\\\\\\(dashboard\\\\\\)/)",
+      "Bash(cat -n /Users/mohammed/Desktop/Channels-by-STC/src/app/\\\\\\(dashboard\\\\\\)/layout.tsx)"
     ]
   }
 }

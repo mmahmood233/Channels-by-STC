@@ -163,9 +163,12 @@
   }
 }
 
-/* ── Dark Mode Overrides ──────────────────────────────────────────────────── */
+/* ── Dark Mode — enable .dark class variant for Tailwind v4 ──────────────── */
+@variant dark (&:where(.dark, .dark *));
 
+/* ── Dark Mode CSS variable overrides ────────────────────────────────────── */
 .dark {
+  color-scheme: dark;
   --color-surface-50:  #0f172a;
   --color-surface-100: #1e293b;
   --color-surface-200: #334155;
@@ -181,17 +184,59 @@
   --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
 }
 
+/* ── Dark: override hardcoded bg-white across all components ─────────────── */
+.dark .bg-white {
+  background-color: var(--color-surface-100) !important;
+}
+
+/* Sidebar, topbar, modals, cards */
+.dark header,
+.dark aside,
+.dark .shadow-soft,
+.dark .shadow-2xl {
+  background-color: var(--color-surface-100) !important;
+  border-color: var(--color-surface-200) !important;
+}
+
+/* Table rows */
+.dark tbody tr:hover {
+  background-color: color-mix(in srgb, var(--color-surface-200) 60%, transparent) !important;
+}
+
+.dark .divide-y > * {
+  border-color: var(--color-surface-200);
+}
+
+/* Inputs & selects */
 .dark .input-field {
   background: var(--color-surface-100);
   border-color: var(--color-surface-200);
   color: var(--color-surface-900);
 }
 
+/* Code/mono backgrounds */
+.dark code,
+.dark .bg-surface-100 {
+  background-color: var(--color-surface-200) !important;
+}
+
+/* Dropdown panels */
+.dark [class*="rounded-2xl"],
+.dark [class*="rounded-xl"] {
+  border-color: var(--color-surface-200);
+}
+
+/* Autofill */
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover,
 .dark input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 30px var(--color-surface-100) inset !important;
   -webkit-text-fill-color: var(--color-surface-900) !important;
+}
+
+/* Scrollbar */
+.dark * {
+  scrollbar-color: var(--color-surface-300) transparent;
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────────── */

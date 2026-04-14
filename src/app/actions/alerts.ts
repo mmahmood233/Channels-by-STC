@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 
 export async function acknowledgeAlert(alertId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { error } = await supabase
     .from("alerts")
@@ -22,14 +22,14 @@ export async function acknowledgeAlert(alertId: string) {
 
 export async function resolveAlert(alertId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const now = new Date().toISOString();
 
   const { error } = await supabase
     .from("alerts")
-    .update({ status: "resolved", resolved_at: now, resolved_by: session.user.id })
+    .update({ status: "resolved", resolved_at: now, resolved_by: user.id })
     .eq("id", alertId)
     .in("status", ["active", "acknowledged"]);
 
@@ -41,8 +41,8 @@ export async function resolveAlert(alertId: string) {
 
 export async function dismissAlert(alertId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { error } = await supabase
     .from("alerts")

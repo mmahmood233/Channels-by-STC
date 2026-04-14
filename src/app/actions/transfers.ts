@@ -5,13 +5,13 @@ import { revalidatePath } from "next/cache";
 
 export async function approveTransfer(transferId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile || (profile.role !== "admin" && profile.role !== "warehouse_manager")) {
@@ -20,7 +20,7 @@ export async function approveTransfer(transferId: string) {
 
   const { error } = await supabase
     .from("transfers")
-    .update({ status: "approved", approved_by: session.user.id })
+    .update({ status: "approved", approved_by: user.id })
     .eq("id", transferId)
     .eq("status", "pending");
 
@@ -31,13 +31,13 @@ export async function approveTransfer(transferId: string) {
 
 export async function rejectTransfer(transferId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile || (profile.role !== "admin" && profile.role !== "warehouse_manager")) {
@@ -57,8 +57,8 @@ export async function rejectTransfer(transferId: string) {
 
 export async function markInTransit(transferId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const { error } = await supabase
     .from("transfers")
@@ -73,8 +73,8 @@ export async function markInTransit(transferId: string) {
 
 export async function completeTransfer(transferId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   const now = new Date().toISOString();
 

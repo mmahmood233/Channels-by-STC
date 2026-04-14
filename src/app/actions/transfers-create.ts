@@ -15,10 +15,8 @@ export async function createTransfer(data: {
   items: TransferLineItem[];
 }) {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   if (!data.items.length) return { error: "Add at least one item" };
   if (data.source_store_id === data.destination_store_id)
@@ -30,7 +28,7 @@ export async function createTransfer(data: {
     .insert({
       source_store_id: data.source_store_id,
       destination_store_id: data.destination_store_id,
-      requested_by: session.user.id,
+      requested_by: user.id,
       status: "pending",
       notes: data.notes || null,
     })

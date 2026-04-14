@@ -16,10 +16,8 @@ export async function createSale(data: {
   items: SaleLineItem[];
 }) {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) return { error: "Unauthorized" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
 
   if (!data.items.length) return { error: "Add at least one item" };
 
@@ -33,7 +31,7 @@ export async function createSale(data: {
     .from("sales")
     .insert({
       store_id: data.store_id,
-      sold_by: session.user.id,
+      sold_by: user.id,
       sale_date: data.sale_date,
       total_amount: total,
       notes: data.notes || null,
@@ -85,7 +83,7 @@ export async function createSale(data: {
       quantity: -item.quantity,
       reference_type: "sale",
       reference_id: sale.id,
-      performed_by: session.user.id,
+      performed_by: user.id,
     });
   }
 

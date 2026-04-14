@@ -9,8 +9,8 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, store_id, full_name, stores(name)")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (!profile) {
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
     supabase
       .from("chatbot_logs")
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         user_role: role,
         store_id: storeId,
         question: message,

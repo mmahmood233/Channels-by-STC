@@ -4,8 +4,8 @@ import { ChatInterface } from "@/features/chatbot/ChatInterface";
 
 export default async function ChatbotPage() {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   return <ChatInterface />;
 }

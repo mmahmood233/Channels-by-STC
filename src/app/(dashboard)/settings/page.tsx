@@ -6,13 +6,13 @@ import type { UserRole } from "@/types";
 
 export default async function SettingsPage() {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) redirect("/login");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, email, role, phone, store_id, created_at, stores(name)")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
   if (!profile) redirect("/login");
 
@@ -55,7 +55,7 @@ export default async function SettingsPage() {
       {/* ── Account Info ─────────────────────────────────────────── */}
       <Section title="Account Information" description="Read-only account metadata.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InfoRow label="User ID" value={session.user.id} mono />
+          <InfoRow label="User ID" value={user.id} mono />
           <InfoRow
             label="Member Since"
             value={new Date(profile.created_at).toLocaleDateString("en-BH", {
