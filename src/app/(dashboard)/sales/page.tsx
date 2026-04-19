@@ -3,7 +3,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewSaleModal } from "@/features/sales/NewSaleModal";
+import { VoidSaleButton } from "@/features/sales/VoidSaleButton";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { PrintButton } from "@/components/ui/PrintButton";
 import { ShoppingCart } from "lucide-react";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -85,7 +87,10 @@ export default async function SalesPage({
   return (
     <div className="space-y-6">
       {/* Header actions */}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 no-print">
+        {sales && sales.length > 0 && (
+          <PrintButton />
+        )}
         {sales && sales.length > 0 && (
           <ExportCsvButton
             filename="sales-report.csv"
@@ -146,6 +151,7 @@ export default async function SalesPage({
                   <Th>Units</Th>
                   <Th>Total</Th>
                   <Th>Notes</Th>
+                  {isAdmin && <Th></Th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50">

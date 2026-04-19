@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PrintButton } from "@/components/ui/PrintButton";
+import { DeviceModal } from "@/features/devices/DeviceModal";
+import { DeviceStatusToggle } from "@/features/devices/DeviceStatusToggle";
 import { Smartphone } from "lucide-react";
 import { formatCurrency } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -15,6 +18,11 @@ export default async function DevicesPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles").select("role").eq("id", user.id).single();
+  if (!profile) redirect("/login");
+
+  const isAdmin = profile.role === "admin";
   const params = await searchParams;
 
   const [{ data: categories }, { data: brandRows }] = await Promise.all([
@@ -26,7 +34,7 @@ export default async function DevicesPage({
 
   let query = supabase
     .from("devices")
-    .select("id, sku, name, brand, unit_price, cost_price, status, low_stock_threshold, categories(name)")
+    .select("id, sku, name, brand, category_id, unit_price, cost_price, status, low_stock_threshold, categories(name)")
     .order("brand")
     .order("name");
 
@@ -37,20 +45,21 @@ export default async function DevicesPage({
   const { data: devices } = await query;
   const hasFilters = params.brand || params.status || params.cat;
 
+  const categoryList = (categories ?? []).map(c => ({ id: c.id as string, name: c.name as string }));
+
   return (
     <div className="space-y-6">
-      {/* Stats row */}
-      <div className="flex items-center gap-3 text-sm text-surface-500">
-        <span>{devices?.length ?? 0} results</span>
-        {hasFilters && (
-          <a href="/devices" className="text-brand-600 hover:underline">
-            Clear filters
-          </a>
-        )}
+      {/* Header actions */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-surface-500">{devices?.length ?? 0} results</p>
+        <div className="flex items-center gap-2 no-print">
+          <PrintButton />
+          {isAdmin && <DeviceModal categories={categoryList} />}
+        </div>
       </div>
 
       {/* Filter chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 no-print">
         {/* Brand filter */}
         <div className="flex flex-wrap gap-1.5">
           <FilterChip href="/devices" active={!params.brand} label="All Brands" />
@@ -65,10 +74,15 @@ export default async function DevicesPage({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 no-print">
         <FilterChip href={buildUrl("/devices", { ...params, status: undefined })} active={!params.status} label="All Statuses" />
         <FilterChip href={buildUrl("/devices", { ...params, status: "active" })} active={params.status === "active"} label="Active" />
         <FilterChip href={buildUrl("/devices", { ...params, status: "discontinued" })} active={params.status === "discontinued"} label="Discontinued" />
+        {hasFilters && (
+          <a href="/devices" className="rounded-full border border-surface-200 px-3 py-1 text-xs font-medium text-surface-500 hover:bg-surface-50">
+            Clear filters
+          </a>
+        )}
       </div>
 
       {/* Table */}
@@ -86,6 +100,7 @@ export default async function DevicesPage({
                   <Th>Cost Price</Th>
                   <Th>Min Stock</Th>
                   <Th>Status</Th>
+                  {isAdmin && <Th>Actions</Th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50">
@@ -109,6 +124,29 @@ export default async function DevicesPage({
                         {d.status === "active" ? "Active" : "Discontinued"}
                       </Badge>
                     </Td>
+                    {isAdmin && (
+                      <Td>
+                        <div className="flex items-center gap-1.5 no-print">
+                          <DeviceModal
+                            categories={categoryList}
+                            device={{
+                              id: d.id as string,
+                              sku: d.sku as string,
+                              name: d.name as string,
+                              brand: d.brand as string,
+                              category_id: d.category_id as string | null,
+                              unit_price: Number(d.unit_price),
+                              cost_price: d.cost_price ? Number(d.cost_price) : null,
+                              low_stock_threshold: d.low_stock_threshold as number,
+                            }}
+                          />
+                          <DeviceStatusToggle
+                            deviceId={d.id as string}
+                            currentStatus={d.status as string}
+                          />
+                        </div>
+                      </Td>
+                    )}
                   </tr>
                 ))}
               </tbody>

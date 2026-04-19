@@ -92,3 +92,63 @@ export async function createSale(data: {
   revalidatePath("/dashboard");
   return { success: true, saleId: sale.id };
 }
+
+export async function voidSale(saleId: string, reason: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  const { data: profile } = await supabase
+    .from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") return { error: "Admin only" };
+
+  // Fetch sale + items
+  const { data: sale } = await supabase
+    .from("sales")
+    .select("id, store_id, notes, sale_items(device_id, quantity)")
+    .eq("id", saleId)
+    .single();
+
+  if (!sale) return { error: "Sale not found" };
+  if ((sale.notes as string | null)?.startsWith("[VOIDED]")) return { error: "Sale already voided" };
+
+  const items = (sale.sale_items as { device_id: string; quantity: number }[]) ?? [];
+
+  // Reverse inventory + record stock movements
+  for (const item of items) {
+    const { data: inv } = await supabase
+      .from("inventory")
+      .select("id, quantity")
+      .eq("store_id", sale.store_id)
+      .eq("device_id", item.device_id)
+      .single();
+
+    if (inv) {
+      await supabase
+        .from("inventory")
+        .update({ quantity: inv.quantity + item.quantity })
+        .eq("id", inv.id);
+    }
+
+    await supabase.from("stock_movements").insert({
+      store_id: sale.store_id,
+      device_id: item.device_id,
+      movement_type: "return",
+      quantity: item.quantity,
+      reference_type: "sale_void",
+      reference_id: saleId,
+      notes: `Voided sale — ${reason}`,
+      performed_by: user.id,
+    });
+  }
+
+  // Mark sale as voided in notes
+  await supabase.from("sales").update({
+    notes: `[VOIDED] ${reason}`,
+  }).eq("id", saleId);
+
+  revalidatePath("/sales");
+  revalidatePath("/inventory");
+  revalidatePath("/dashboard");
+  return { success: true };
+}

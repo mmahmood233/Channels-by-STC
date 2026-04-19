@@ -308,3 +308,59 @@ input:-webkit-autofill:focus {
 .input-field::placeholder {
   color: var(--color-surface-400);
 }
+
+/* ── Print / PDF styles ───────────────────────────────────────────────────── */
+@media print {
+  /* Hide nav chrome */
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Full-width main content */
+  main {
+    margin: 0 !important;
+    padding: 1rem !important;
+    width: 100% !important;
+  }
+
+  /* Flatten shadows and borders for print */
+  .shadow-soft,
+  [class*="shadow"] {
+    box-shadow: none !important;
+  }
+
+  /* Keep table borders visible */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid #e5e7eb !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+  thead {
+    background-color: #f9fafb !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Summary/KPI cards side-by-side */
+  .grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Show page title at top */
+  body::before {
+    content: "Channels by stc — " attr(data-page-title);
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1a0040;
+  }
+}
