@@ -201,6 +201,14 @@ export default async function SalesPage({
                       <Td className="max-w-xs truncate text-surface-400 text-xs">
                         {sale.notes ?? "—"}
                       </Td>
+                      {isAdmin && (
+                        <Td>
+                          <VoidSaleButton
+                            saleId={sale.id as string}
+                            isVoided={(sale.notes as string | null)?.startsWith("[VOIDED]") ?? false}
+                          />
+                        </Td>
+                      )}
                     </tr>
                   );
                 })}
