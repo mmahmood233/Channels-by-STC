@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2, XCircle, Truck, PackageCheck, Loader2 } from "lucide-react";
 import { approveTransfer, rejectTransfer, markInTransit, completeTransfer } from "@/app/actions/transfers";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/utils/cn";
 
 interface TransferActionsProps {
@@ -14,6 +15,7 @@ interface TransferActionsProps {
 export function TransferActions({ transferId, status, userRole }: TransferActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
 
   const canApprove =
     (userRole === "admin" || userRole === "warehouse_manager") &&
@@ -26,11 +28,12 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
 
   if (!canApprove && !canReject && !canTransit && !canComplete) return null;
 
-  function run(action: () => Promise<{ error?: string; success?: boolean }>) {
+  function run(action: () => Promise<{ error?: string; success?: boolean }>, successMsg: string) {
     setError(null);
     startTransition(async () => {
       const result = await action();
-      if (result?.error) setError(result.error);
+      if (result?.error) { setError(result.error); toastError(result.error); }
+      else success(successMsg);
     });
   }
 
@@ -38,7 +41,7 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
     <div className="flex items-center gap-1.5">
       {canApprove && (
         <ActionBtn
-          onClick={() => run(() => approveTransfer(transferId))}
+          onClick={() => run(() => approveTransfer(transferId), "Transfer approved")}
           pending={pending}
           color="green"
           icon={<CheckCircle2 className="h-3.5 w-3.5" />}
@@ -47,7 +50,7 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
       )}
       {canTransit && (
         <ActionBtn
-          onClick={() => run(() => markInTransit(transferId))}
+          onClick={() => run(() => markInTransit(transferId), "Marked as in transit")}
           pending={pending}
           color="blue"
           icon={<Truck className="h-3.5 w-3.5" />}
@@ -56,7 +59,7 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
       )}
       {canComplete && (
         <ActionBtn
-          onClick={() => run(() => completeTransfer(transferId))}
+          onClick={() => run(() => completeTransfer(transferId), "Transfer completed")}
           pending={pending}
           color="purple"
           icon={<PackageCheck className="h-3.5 w-3.5" />}
@@ -65,7 +68,7 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
       )}
       {canReject && (
         <ActionBtn
-          onClick={() => run(() => rejectTransfer(transferId))}
+          onClick={() => run(() => rejectTransfer(transferId), "Transfer rejected")}
           pending={pending}
           color="red"
           icon={<XCircle className="h-3.5 w-3.5" />}

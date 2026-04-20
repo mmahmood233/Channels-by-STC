@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { PrintButton } from "@/components/ui/PrintButton";
 import { cn } from "@/utils/cn";
 
 export default async function ForecastsPage({
@@ -53,6 +55,27 @@ export default async function ForecastsPage({
 
   return (
     <div className="space-y-6">
+      {/* Header actions */}
+      {forecasts && forecasts.length > 0 && (
+        <div className="flex justify-end gap-2 no-print">
+          <PrintButton />
+          <ExportCsvButton
+            filename="forecasts-report.csv"
+            headers={["Device", "Store", "Period", "Predicted Demand", "Current Stock", "Gap", "Confidence", "Risk"]}
+            rows={(forecasts ?? []).map((f) => [
+              f.device_name,
+              f.store_name ?? "Global",
+              new Date(f.forecast_period).toLocaleDateString("en-BH", { month: "long", year: "numeric" }),
+              f.predicted_quantity,
+              f.current_stock,
+              f.stock_gap,
+              f.confidence_score !== null ? `${(f.confidence_score * 100).toFixed(0)}%` : "",
+              f.risk_level,
+            ])}
+          />
+        </div>
+      )}
+
       {/* Risk summary */}
       <div className="grid grid-cols-3 gap-4">
         <RiskCard

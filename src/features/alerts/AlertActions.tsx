@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Eye, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { acknowledgeAlert, resolveAlert, dismissAlert } from "@/app/actions/alerts";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/utils/cn";
 
 interface AlertActionsProps {
@@ -13,16 +14,18 @@ interface AlertActionsProps {
 export function AlertActions({ alertId, status }: AlertActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
 
   const canAck = status === "active";
   const canResolve = status === "active" || status === "acknowledged";
   const canDismiss = status !== "resolved" && status !== "dismissed";
 
-  function run(action: () => Promise<{ error?: string; success?: boolean }>) {
+  function run(action: () => Promise<{ error?: string; success?: boolean }>, successMsg: string) {
     setError(null);
     startTransition(async () => {
       const result = await action();
-      if (result?.error) setError(result.error);
+      if (result?.error) { setError(result.error); toastError(result.error); }
+      else success(successMsg);
     });
   }
 
@@ -30,7 +33,7 @@ export function AlertActions({ alertId, status }: AlertActionsProps) {
     <div className="flex items-center gap-1.5">
       {canAck && (
         <Btn
-          onClick={() => run(() => acknowledgeAlert(alertId))}
+          onClick={() => run(() => acknowledgeAlert(alertId), "Alert acknowledged")}
           pending={pending}
           color="blue"
           icon={<Eye className="h-3.5 w-3.5" />}
@@ -39,7 +42,7 @@ export function AlertActions({ alertId, status }: AlertActionsProps) {
       )}
       {canResolve && (
         <Btn
-          onClick={() => run(() => resolveAlert(alertId))}
+          onClick={() => run(() => resolveAlert(alertId), "Alert resolved")}
           pending={pending}
           color="green"
           icon={<CheckCircle2 className="h-3.5 w-3.5" />}
@@ -48,7 +51,7 @@ export function AlertActions({ alertId, status }: AlertActionsProps) {
       )}
       {canDismiss && (
         <Btn
-          onClick={() => run(() => dismissAlert(alertId))}
+          onClick={() => run(() => dismissAlert(alertId), "Alert dismissed")}
           pending={pending}
           color="red"
           icon={<XCircle className="h-3.5 w-3.5" />}

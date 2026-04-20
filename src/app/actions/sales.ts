@@ -21,6 +21,20 @@ export async function createSale(data: {
 
   if (!data.items.length) return { error: "Add at least one item" };
 
+  // Check sufficient stock for each item before creating sale
+  for (const item of data.items) {
+    const { data: inv } = await supabase
+      .from("inventory")
+      .select("quantity")
+      .eq("store_id", data.store_id)
+      .eq("device_id", item.device_id)
+      .single();
+    const available = inv?.quantity ?? 0;
+    if (available < item.quantity) {
+      return { error: `Insufficient stock — only ${available} unit(s) available for one of the items` };
+    }
+  }
+
   const total = data.items.reduce(
     (sum, i) => sum + i.quantity * i.unit_price,
     0

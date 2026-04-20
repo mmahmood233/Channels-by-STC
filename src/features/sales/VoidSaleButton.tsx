@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Ban, X, Loader2 } from "lucide-react";
 import { voidSale } from "@/app/actions/sales";
+import { useToast } from "@/components/ui/Toast";
 
 interface Props {
   saleId: string;
@@ -14,6 +15,7 @@ export function VoidSaleButton({ saleId, isVoided }: Props) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { success, error: toastError } = useToast();
 
   if (isVoided) {
     return (
@@ -31,9 +33,11 @@ export function VoidSaleButton({ saleId, isVoided }: Props) {
       const result = await voidSale(saleId, reason.trim());
       if (result.error) {
         setError(result.error);
+        toastError(result.error);
       } else {
         setOpen(false);
         setReason("");
+        success("Sale voided — stock has been reversed");
       }
     });
   }

@@ -6,6 +6,8 @@ import { Bell, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/utils/format";
 import { ALERT_SEVERITY_CONFIG, ALERT_STATUS_CONFIG } from "@/constants";
 import { AlertActions } from "@/features/alerts/AlertActions";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { PrintButton } from "@/components/ui/PrintButton";
 import { cn } from "@/utils/cn";
 
 export default async function AlertsPage({
@@ -57,6 +59,27 @@ export default async function AlertsPage({
 
   return (
     <div className="space-y-6">
+      {/* Header actions */}
+      {alerts && alerts.length > 0 && (
+        <div className="flex justify-end gap-2 no-print">
+          <PrintButton />
+          <ExportCsvButton
+            filename="alerts-report.csv"
+            headers={["Title", "Store", "Device", "Severity", "Status", "Stock", "Threshold", "Created"]}
+            rows={(alerts ?? []).map((a) => [
+              a.title,
+              (a.stores as unknown as { name: string } | null)?.name ?? "",
+              (a.devices as unknown as { name: string } | null)?.name ?? "",
+              a.severity,
+              a.status,
+              a.current_quantity ?? "",
+              a.threshold ?? "",
+              formatDateTime(a.created_at),
+            ])}
+          />
+        </div>
+      )}
+
       {/* Status filters */}
       <div className="flex flex-wrap gap-2">
         <FilterChip

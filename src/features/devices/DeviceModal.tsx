@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { X, Plus, Pencil, Loader2 } from "lucide-react";
 import { createDevice, updateDevice } from "@/app/actions/devices";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/utils/cn";
 
 interface Category { id: string; name: string; }
@@ -28,6 +29,7 @@ export function DeviceModal({ categories, device }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
 
   const [form, setForm] = useState({
     sku:                 device?.sku                 ?? "",
@@ -78,8 +80,10 @@ export function DeviceModal({ categories, device }: Props) {
 
       if (result.error) {
         setError(result.error);
+        toastError(result.error);
       } else {
         setOpen(false);
+        success(isEdit ? "Device updated successfully" : "Device added successfully");
       }
     });
   }

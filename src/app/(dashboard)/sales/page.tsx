@@ -13,7 +13,7 @@ import { cn } from "@/utils/cn";
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ store?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ store?: string; from?: string; to?: string; }>;
 }) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -124,7 +124,7 @@ export default async function SalesPage({
 
       {/* Filters */}
       {(isAdmin || isWarehouse) && stores && stores.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 no-print">
           <FilterChip href="/sales" active={!params.store} label="All Stores" />
           {stores.map((s) => (
             <FilterChip
@@ -136,6 +136,40 @@ export default async function SalesPage({
           ))}
         </div>
       )}
+
+      {/* Date range filter */}
+      <div className="flex flex-wrap items-center gap-2 no-print">
+        <span className="text-xs font-medium text-surface-500">Date:</span>
+        <input
+          type="date"
+          defaultValue={params.from ?? ""}
+          max={params.to ?? new Date().toISOString().split("T")[0]}
+          form="sales-date-form"
+          name="from"
+          className="rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-xs text-surface-700 focus:border-brand-400 focus:outline-none"
+        />
+        <span className="text-xs text-surface-400">to</span>
+        <input
+          type="date"
+          defaultValue={params.to ?? ""}
+          min={params.from ?? ""}
+          max={new Date().toISOString().split("T")[0]}
+          form="sales-date-form"
+          name="to"
+          className="rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-xs text-surface-700 focus:border-brand-400 focus:outline-none"
+        />
+        <form id="sales-date-form" method="get" action="/sales" className="flex gap-1.5">
+          {params.store && <input type="hidden" name="store" value={params.store} />}
+          <button type="submit" className="rounded-xl bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">
+            Apply
+          </button>
+          {(params.from || params.to) && (
+            <a href={buildUrl("/sales", { store: params.store })} className="rounded-xl border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-600 hover:bg-surface-50">
+              Clear
+            </a>
+          )}
+        </form>
+      </div>
 
       {/* Table */}
       <div className="rounded-2xl border border-surface-100 bg-white shadow-soft">

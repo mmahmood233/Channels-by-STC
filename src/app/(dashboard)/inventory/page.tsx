@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { PrintButton } from "@/components/ui/PrintButton";
 import { Package, AlertTriangle } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -79,7 +80,8 @@ export default async function InventoryPage({
   return (
     <div className="space-y-6">
       {/* Header actions */}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 no-print">
+        {inventory && inventory.length > 0 && <PrintButton />}
         {inventory && inventory.length > 0 && (
           <ExportCsvButton
             filename="inventory-report.csv"
