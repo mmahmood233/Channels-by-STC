@@ -1,5 +1,6 @@
 "use server";
 
+// Server actions for device management — admin only
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 

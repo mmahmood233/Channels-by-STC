@@ -1,3 +1,6 @@
+// AI Chatbot API route — accepts a user message + conversation history,
+// injects live inventory/alert/sales context from the DB, then streams
+// a GPT-4o-mini response. Logs each interaction to chatbot_logs.
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { buildSystemPrompt } from "@/lib/openai/prompts";

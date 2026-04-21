@@ -1,5 +1,7 @@
 "use server";
 
+// Server action for manual stock adjustments (admin + warehouse manager only)
+// Positive adjustment = add stock, negative = remove stock
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 

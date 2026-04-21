@@ -1,3 +1,7 @@
+// AI Restock Suggestions API — admin + warehouse manager only
+// Fetches low-stock items, forecast warnings, and sales velocity,
+// then calls GPT-4o-mini to generate restock transfer suggestions.
+// Post-processes AI output to strip any hallucinated IDs.
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import OpenAI from "openai";

@@ -1,5 +1,7 @@
 "use server";
 
+// Server actions for transfer status management
+// Transfer lifecycle: pending → approved → in_transit → completed (or cancelled at any step)
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 

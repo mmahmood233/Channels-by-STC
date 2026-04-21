@@ -1,5 +1,8 @@
 "use server";
 
+// Server actions for sales: create a new sale and void an existing one
+// createSale: checks stock, inserts sale + line items, decrements inventory
+// voidSale: admin only — reverses inventory and marks sale as [VOIDED]
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 

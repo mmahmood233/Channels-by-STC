@@ -1,3 +1,7 @@
+// Monthly report cron job — triggered by Vercel Cron on the 1st of each month
+// Fetches last month's sales, top devices, and stock health, then emails
+// a formatted HTML report to all active admin accounts via Resend.
+// Protected by CRON_SECRET env variable.
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createServiceRoleClient } from "@/lib/supabase/server";

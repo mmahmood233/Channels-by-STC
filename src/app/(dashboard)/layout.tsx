@@ -1,3 +1,6 @@
+// Shared layout for all dashboard pages
+// Verifies auth, loads the user profile, counts active alerts for the bell badge,
+// then renders the sidebar + topbar shell around the page content.
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/DashboardShell";
