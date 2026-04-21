@@ -24,13 +24,16 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
   const supabase = await createServerSupabaseClient();
 
   const now = new Date();
-  const todayISO = now.toISOString().split("T")[0];
+  const todayISO     = now.toISOString().split("T")[0];
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-  const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const startOfWeek  = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
+  const endLastMonth   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
 
   const [
     { data: todaySales },
     { data: monthlySales },
+    { data: lastMonthSales },
     { count: lowStockCount },
     { count: activeAlerts },
     { count: pendingTransfers },
@@ -46,6 +49,7 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
     supabase.from("sales").select("total_amount").eq("store_id", storeId).eq("sale_date", todayISO),
     // This month's sales
     supabase.from("sales").select("total_amount").eq("store_id", storeId).gte("sale_date", startOfMonth),
+    supabase.from("sales").select("total_amount").eq("store_id", storeId).gte("sale_date", startLastMonth).lte("sale_date", endLastMonth),
     // Low stock
     supabase.from("current_inventory_view").select("inventory_id", { count: "exact", head: true })
       .eq("store_id", storeId).in("stock_status", ["low_stock", "out_of_stock"]),
@@ -95,8 +99,12 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
     supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name"),
   ]);
 
-  const todayRevenue = todaySales?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
-  const monthRevenue = monthlySales?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const todayRevenue     = todaySales?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const monthRevenue     = monthlySales?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const lastMonthRevenue = lastMonthSales?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const revTrend = lastMonthRevenue > 0
+    ? Math.round(((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+    : null;
 
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = userName.split(" ")[0];
@@ -164,6 +172,7 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
           icon={TrendingUp}
           iconColor="text-brand-600"
           iconBg="bg-brand-50"
+          trend={revTrend !== null ? { value: revTrend, label: "vs last month" } : undefined}
         />
         <StatCard
           title="Low / Out of Stock"

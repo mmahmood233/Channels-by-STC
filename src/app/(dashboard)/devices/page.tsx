@@ -1,12 +1,8 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/Badge";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { DeviceModal } from "@/features/devices/DeviceModal";
-import { DeviceStatusToggle } from "@/features/devices/DeviceStatusToggle";
-import { Smartphone } from "lucide-react";
-import { formatCurrency } from "@/utils/format";
+import { DevicesTable } from "@/features/devices/DevicesTable";
 import { cn } from "@/utils/cn";
 
 export default async function DevicesPage({
@@ -47,11 +43,24 @@ export default async function DevicesPage({
 
   const categoryList = (categories ?? []).map(c => ({ id: c.id as string, name: c.name as string }));
 
+  const deviceList = (devices ?? []).map((d) => ({
+    id: d.id as string,
+    sku: d.sku as string,
+    name: d.name as string,
+    brand: d.brand as string,
+    category_id: d.category_id as string | null,
+    category_name: (d.categories as unknown as { name: string } | null)?.name ?? null,
+    unit_price: Number(d.unit_price),
+    cost_price: d.cost_price ? Number(d.cost_price) : null,
+    low_stock_threshold: d.low_stock_threshold as number,
+    status: d.status as string,
+  }));
+
   return (
     <div className="space-y-6">
       {/* Header actions */}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-surface-500">{devices?.length ?? 0} results</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-surface-500">{deviceList.length} devices</p>
         <div className="flex items-center gap-2 no-print">
           <PrintButton />
           {isAdmin && <DeviceModal categories={categoryList} />}
@@ -60,7 +69,6 @@ export default async function DevicesPage({
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-2 no-print">
-        {/* Brand filter */}
         <div className="flex flex-wrap gap-1.5">
           <FilterChip href="/devices" active={!params.brand} label="All Brands" />
           {brands.map((b) => (
@@ -85,86 +93,10 @@ export default async function DevicesPage({
         )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl border border-surface-100 bg-white shadow-soft">
-        {devices && devices.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface-100 text-left">
-                  <Th>SKU</Th>
-                  <Th>Device</Th>
-                  <Th>Brand</Th>
-                  <Th>Category</Th>
-                  <Th>Selling Price</Th>
-                  <Th>Cost Price</Th>
-                  <Th>Min Stock</Th>
-                  <Th>Status</Th>
-                  {isAdmin && <Th>Actions</Th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-50">
-                {devices.map((d) => (
-                  <tr key={d.id} className="transition-colors hover:bg-surface-50/60">
-                    <Td>
-                      <code className="rounded bg-surface-100 px-1.5 py-0.5 text-xs font-mono text-surface-700">
-                        {d.sku}
-                      </code>
-                    </Td>
-                    <Td className="font-medium text-surface-900">{d.name}</Td>
-                    <Td>{d.brand}</Td>
-                    <Td>{(d.categories as unknown as { name: string } | null)?.name ?? "—"}</Td>
-                    <Td className="font-semibold">{formatCurrency(Number(d.unit_price))}</Td>
-                    <Td className="text-surface-500">
-                      {d.cost_price ? formatCurrency(Number(d.cost_price)) : "—"}
-                    </Td>
-                    <Td>{d.low_stock_threshold}</Td>
-                    <Td>
-                      <Badge variant={d.status === "active" ? "success" : "default"}>
-                        {d.status === "active" ? "Active" : "Discontinued"}
-                      </Badge>
-                    </Td>
-                    {isAdmin && (
-                      <Td>
-                        <div className="flex items-center gap-1.5 no-print">
-                          <DeviceModal
-                            categories={categoryList}
-                            device={{
-                              id: d.id as string,
-                              sku: d.sku as string,
-                              name: d.name as string,
-                              brand: d.brand as string,
-                              category_id: d.category_id as string | null,
-                              unit_price: Number(d.unit_price),
-                              cost_price: d.cost_price ? Number(d.cost_price) : null,
-                              low_stock_threshold: d.low_stock_threshold as number,
-                            }}
-                          />
-                          <DeviceStatusToggle
-                            deviceId={d.id as string}
-                            currentStatus={d.status as string}
-                          />
-                        </div>
-                      </Td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            icon={Smartphone}
-            title="No devices found"
-            description="Try adjusting your filters"
-          />
-        )}
-      </div>
+      <DevicesTable devices={deviceList} categories={categoryList} isAdmin={isAdmin} />
     </div>
   );
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────
 
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const q = new URLSearchParams();
@@ -189,16 +121,4 @@ function FilterChip({ href, active, label }: { href: string; active: boolean; la
       {label}
     </a>
   );
-}
-
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <td className={cn("px-4 py-3 text-surface-700", className)}>{children}</td>;
 }

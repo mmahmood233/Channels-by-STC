@@ -21,7 +21,9 @@ export async function AdminDashboard({ userId, userName }: Props) {
   const supabase = await createServerSupabaseClient();
 
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  const startOfMonth    = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  const startLastMonth  = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
+  const endLastMonth    = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
 
   const [
     { count: totalDevices },
@@ -32,6 +34,7 @@ export async function AdminDashboard({ userId, userName }: Props) {
     { data: recentAlerts },
     { data: recentTransfers },
     { data: salesThisMonth },
+    { data: salesLastMonth },
     { data: allStores },
     { data: devicesForModal },
     { data: inventoryForModal },
@@ -49,13 +52,18 @@ export async function AdminDashboard({ userId, userName }: Props) {
       .select("id, status, created_at, from_store:source_store_id(name), to_store:destination_store_id(name)")
       .order("created_at", { ascending: false }).limit(5),
     supabase.from("sales").select("total_amount").gte("sale_date", startOfMonth),
+    supabase.from("sales").select("total_amount").gte("sale_date", startLastMonth).lte("sale_date", endLastMonth),
     supabase.from("stores").select("id, name, is_warehouse").eq("status", "active").order("name"),
     supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name"),
     supabase.from("current_inventory_view").select("device_id, device_name, brand, sku, quantity, store_id")
       .gt("quantity", 0).order("device_name"),
   ]);
 
-  const monthlyRevenue = salesThisMonth?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const monthlyRevenue   = salesThisMonth?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const lastMonthRevenue = salesLastMonth?.reduce((s, r) => s + Number(r.total_amount), 0) ?? 0;
+  const revTrend = lastMonthRevenue > 0
+    ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+    : null;
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = userName.split(" ")[0];
 
@@ -98,7 +106,8 @@ export async function AdminDashboard({ userId, userName }: Props) {
       {/* KPI */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard title="Device SKUs" value={totalDevices ?? 0} subtitle="Active catalogue" icon={Smartphone} iconColor="text-brand-600" iconBg="bg-brand-50" />
-        <StatCard title="Monthly Revenue" value={formatCurrency(monthlyRevenue)} subtitle="This month" icon={DollarSign} iconColor="text-green-600" iconBg="bg-green-50" />
+        <StatCard title="Monthly Revenue" value={formatCurrency(monthlyRevenue)} subtitle="This month" icon={DollarSign} iconColor="text-green-600" iconBg="bg-green-50"
+          trend={revTrend !== null ? { value: revTrend, label: "vs last month" } : undefined} />
         <StatCard title="Low / Out of Stock" value={lowStockCount ?? 0} subtitle="Need restocking" icon={Package}
           iconColor={(lowStockCount ?? 0) > 0 ? "text-amber-600" : "text-green-600"}
           iconBg={(lowStockCount ?? 0) > 0 ? "bg-amber-50" : "bg-green-50"} />
