@@ -49,7 +49,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     label: "Analytics",
     href: ROUTES.ANALYTICS,
     icon: "BarChart2",
-    roles: ["admin", "warehouse_manager"],
+    roles: ["admin", "store_manager", "warehouse_manager"],
   },
   {
     label: "AI Restock",
@@ -79,6 +79,6 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     label: "Settings",
     href: ROUTES.SETTINGS,
     icon: "Settings",
-    roles: ["admin"],
+    roles: ["admin", "store_manager", "warehouse_manager"],
   },
 ];
