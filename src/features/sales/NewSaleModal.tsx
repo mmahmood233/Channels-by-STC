@@ -12,6 +12,7 @@ interface Device {
   brand: string;
   sku: string;
   unit_price: number;
+  stock: number;
 }
 
 interface NewSaleModalProps {
@@ -55,15 +56,26 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
             ...item,
             device_id: String(val),
             unit_price: dev?.unit_price ?? 0,
+            quantity: 1,
           };
+        }
+        if (field === "quantity") {
+          const dev = devices.find((d) => d.id === item.device_id);
+          if (dev) {
+            const usedInOtherRows = prev
+              .filter((r, j) => j !== idx && r.device_id === item.device_id)
+              .reduce((s, r) => s + r.quantity, 0);
+            const remaining = dev.stock - usedInOtherRows;
+            return { ...item, quantity: Math.min(Math.max(1, Number(val)), remaining) };
+          }
         }
         return { ...item, [field]: Number(val) };
       })
     );
   }
 
-  const total = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
   const validItems = items.filter((i) => i.device_id && i.quantity > 0);
+  const total = validItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
 
   function submit() {
     if (!validItems.length) {
@@ -171,34 +183,53 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
 
                 <div className="space-y-2">
                   {items.map((item, idx) => {
-                    const selectedDevice = devices.find(
-                      (d) => d.id === item.device_id
-                    );
+                    const dev = devices.find((d) => d.id === item.device_id);
+                    const usedInOtherRows = items
+                      .filter((r, j) => j !== idx && r.device_id === item.device_id)
+                      .reduce((s, r) => s + r.quantity, 0);
+                    const remaining = dev ? dev.stock - usedInOtherRows : 0;
+
                     return (
                       <div
                         key={idx}
-                        className="grid grid-cols-[1fr_80px_110px_32px] gap-2 items-center"
+                        className="grid grid-cols-[1fr_80px_100px_32px] gap-2 items-start"
                       >
                         {/* Device select */}
-                        <select
-                          value={item.device_id}
-                          onChange={(e) =>
-                            updateItem(idx, "device_id", e.target.value)
-                          }
-                          className="input-field"
-                        >
-                          <option value="">— Select device —</option>
-                          {devices.map((d) => (
-                            <option key={d.id} value={d.id}>
-                              {d.brand} {d.name} ({d.sku})
-                            </option>
-                          ))}
-                        </select>
+                        <div>
+                          <select
+                            value={item.device_id}
+                            onChange={(e) =>
+                              updateItem(idx, "device_id", e.target.value)
+                            }
+                            className="input-field"
+                          >
+                            <option value="">— Select device —</option>
+                            {devices.map((d) => {
+                              const usedElsewhere = items
+                                .filter((r, j) => j !== idx && r.device_id === d.id)
+                                .reduce((s, r) => s + r.quantity, 0);
+                              const availableForRow = d.stock - usedElsewhere;
+                              return (
+                                <option key={d.id} value={d.id} disabled={availableForRow <= 0}>
+                                  {d.brand} {d.name} ({d.sku}) — {availableForRow} in stock
+                                </option>
+                              );
+                            })}
+                          </select>
+                          {dev && remaining <= 0 && item.device_id ? (
+                            <p className="mt-0.5 text-xs text-red-500">No remaining stock</p>
+                          ) : dev && item.quantity >= remaining && remaining < dev.stock ? (
+                            <p className="mt-0.5 text-xs text-amber-600">
+                              {remaining} remaining after other rows
+                            </p>
+                          ) : null}
+                        </div>
 
                         {/* Qty */}
                         <input
                           type="number"
                           min={1}
+                          max={remaining > 0 ? remaining : 1}
                           value={item.quantity}
                           onChange={(e) =>
                             updateItem(idx, "quantity", e.target.value)
@@ -207,20 +238,16 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
                           placeholder="Qty"
                         />
 
-                        {/* Unit price */}
+                        {/* Unit price — read-only, auto-filled from device catalogue */}
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-surface-400">
                             BD
                           </span>
                           <input
-                            type="number"
-                            step="0.001"
-                            min={0}
-                            value={item.unit_price}
-                            onChange={(e) =>
-                              updateItem(idx, "unit_price", e.target.value)
-                            }
-                            className="input-field pl-8"
+                            type="text"
+                            readOnly
+                            value={item.unit_price > 0 ? item.unit_price.toFixed(3) : "—"}
+                            className="input-field pl-8 bg-surface-50 text-surface-500 cursor-default"
                           />
                         </div>
 

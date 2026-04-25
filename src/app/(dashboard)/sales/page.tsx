@@ -39,14 +39,21 @@ export default async function SalesPage({
 
   // Devices for the New Sale modal (store managers and admins can record sales)
   const canSell = !isWarehouse;
-  const { data: devicesForModal } = canSell
-    ? await supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name")
-    : { data: null };
+  const saleStoreId = (profile.store_id as string | null) ?? (stores?.[0]?.id ?? "");
+
+  const [{ data: devicesForModal }, { data: inventoryForModal }] = canSell && saleStoreId
+    ? await Promise.all([
+        supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name"),
+        supabase.from("current_inventory_view").select("device_id, quantity").eq("store_id", saleStoreId),
+      ])
+    : [{ data: null }, { data: null }];
+
+  const stockMap = Object.fromEntries((inventoryForModal ?? []).map((r) => [r.device_id as string, r.quantity as number]));
   const modalDevices = (devicesForModal ?? []).map((d) => ({
     id: d.id as string, name: d.name as string, brand: d.brand as string,
     sku: d.sku as string, unit_price: Number(d.unit_price),
+    stock: stockMap[d.id as string] ?? 0,
   }));
-  const saleStoreId = (profile.store_id as string | null) ?? (stores?.[0]?.id ?? "");
 
   let query = supabase
     .from("sales")
