@@ -32,7 +32,30 @@ export async function adjustStock(data: {
     .eq("device_id", data.device_id)
     .single();
 
-  if (!inv) return { error: "No inventory record found for this device/store" };
+  if (!inv) {
+    // No inventory row yet — only allow positive adjustments to create initial stock
+    if (data.adjustment < 0) return { error: "No inventory record exists for this device at this store" };
+
+    const { error: insertErr } = await supabase
+      .from("inventory")
+      .insert({ store_id: data.store_id, device_id: data.device_id, quantity: data.adjustment });
+
+    if (insertErr) return { error: insertErr.message };
+
+    await supabase.from("stock_movements").insert({
+      store_id: data.store_id,
+      device_id: data.device_id,
+      movement_type: "adjustment",
+      quantity: data.adjustment,
+      reference_type: "manual_adjustment",
+      notes: data.reason,
+      performed_by: user.id,
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
+    return { success: true, newQuantity: data.adjustment };
+  }
 
   const newQty = inv.quantity + data.adjustment;
   if (newQty < 0) return { error: `Cannot reduce below 0. Current stock: ${inv.quantity}` };

@@ -32,7 +32,8 @@ SELECT
 FROM inventory i
 JOIN stores s ON i.store_id = s.id
 JOIN devices d ON i.device_id = d.id
-JOIN categories c ON d.category_id = c.id;
+JOIN categories c ON d.category_id = c.id
+WHERE d.status = 'active';
 
 
 -- ── Monthly Sales View ─────────────────────────────────────────────────────

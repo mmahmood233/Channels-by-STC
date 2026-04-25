@@ -78,8 +78,84 @@ export async function completeTransfer(transferId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  const now = new Date().toISOString();
+  // Fetch transfer header + all line items
+  const { data: transfer, error: fetchErr } = await supabase
+    .from("transfers")
+    .select("id, source_store_id, destination_store_id, status, transfer_items(device_id, quantity)")
+    .eq("id", transferId)
+    .eq("status", "in_transit")
+    .single();
 
+  if (fetchErr || !transfer) return { error: "Transfer not found or not in transit" };
+
+  const items = transfer.transfer_items as { device_id: string; quantity: number }[];
+
+  // Move stock for each item
+  for (const item of items) {
+    // Decrement source inventory
+    const { data: srcInv } = await supabase
+      .from("inventory")
+      .select("id, quantity")
+      .eq("store_id", transfer.source_store_id)
+      .eq("device_id", item.device_id)
+      .single();
+
+    if (!srcInv || srcInv.quantity < item.quantity) {
+      return { error: "Insufficient stock at source store — cannot complete transfer" };
+    }
+
+    const { error: srcErr } = await supabase
+      .from("inventory")
+      .update({ quantity: srcInv.quantity - item.quantity })
+      .eq("id", srcInv.id);
+
+    if (srcErr) return { error: srcErr.message };
+
+    // Increment destination inventory (create row if it doesn't exist yet)
+    const { data: dstInv } = await supabase
+      .from("inventory")
+      .select("id, quantity")
+      .eq("store_id", transfer.destination_store_id)
+      .eq("device_id", item.device_id)
+      .single();
+
+    if (dstInv) {
+      const { error: dstErr } = await supabase
+        .from("inventory")
+        .update({ quantity: dstInv.quantity + item.quantity })
+        .eq("id", dstInv.id);
+      if (dstErr) return { error: dstErr.message };
+    } else {
+      const { error: insertErr } = await supabase
+        .from("inventory")
+        .insert({ store_id: transfer.destination_store_id, device_id: item.device_id, quantity: item.quantity });
+      if (insertErr) return { error: insertErr.message };
+    }
+
+    // Log stock movements for audit trail
+    await supabase.from("stock_movements").insert([
+      {
+        store_id: transfer.source_store_id,
+        device_id: item.device_id,
+        movement_type: "transfer_out",
+        quantity: -item.quantity,
+        reference_type: "transfer",
+        reference_id: transferId,
+        performed_by: user.id,
+      },
+      {
+        store_id: transfer.destination_store_id,
+        device_id: item.device_id,
+        movement_type: "transfer_in",
+        quantity: item.quantity,
+        reference_type: "transfer",
+        reference_id: transferId,
+        performed_by: user.id,
+      },
+    ]);
+  }
+
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("transfers")
     .update({ status: "completed", transfer_date: now })
@@ -88,5 +164,7 @@ export async function completeTransfer(transferId: string) {
 
   if (error) return { error: error.message };
   revalidatePath("/transfers");
+  revalidatePath("/inventory");
+  revalidatePath("/dashboard");
   return { success: true };
 }

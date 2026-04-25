@@ -5,7 +5,9 @@
       "Bash(cat -n /Users/mohammed/Desktop/Channels-by-STC/src/app/\\\\\\(dashboard\\\\\\)/layout.tsx)",
       "Bash(find /Users/mohammed/Desktop/Channels-by-STC -not -path */node_modules/* -not -path */.next/* -not -path */.git/* -type d)",
       "Bash(wc -c /Users/mohammed/Desktop/Channels-by-STC/src/app/api/settings/.gitkeep /Users/mohammed/Desktop/Channels-by-STC/docs/.gitkeep)",
-      "Bash(bash /tmp/tree_gen.sh /Users/mohammed/Desktop/Channels-by-STC 0)"
+      "Bash(bash /tmp/tree_gen.sh /Users/mohammed/Desktop/Channels-by-STC 0)",
+      "Bash(supabase db:*)",
+      "Bash(supabase projects:*)"
     ],
     "additionalDirectories": [
       "/dev"
