@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewSaleModal } from "@/features/sales/NewSaleModal";
 import { VoidSaleButton } from "@/features/sales/VoidSaleButton";
@@ -39,20 +38,40 @@ export default async function SalesPage({
 
   // Devices for the New Sale modal (store managers and admins can record sales)
   const canSell = !isWarehouse;
-  const saleStoreId = (profile.store_id as string | null) ?? (stores?.[0]?.id ?? "");
+  const activeStores = stores ?? [];
+  const selectedStore =
+    params.store ? activeStores.find((store) => store.id === params.store) : null;
+  const defaultSaleStore = selectedStore ?? activeStores[0] ?? null;
+  const saleStoreId = (profile.store_id as string | null) ?? (defaultSaleStore?.id ?? "");
+  const saleStoreName =
+    activeStores.find((store) => store.id === saleStoreId)?.name ?? "Selected store";
+  const saleStoreOptions = profile.store_id
+    ? activeStores.filter((store) => store.id === profile.store_id)
+    : activeStores;
 
   const [{ data: devicesForModal }, { data: inventoryForModal }] = canSell && saleStoreId
     ? await Promise.all([
         supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name"),
-        supabase.from("current_inventory_view").select("device_id, quantity").eq("store_id", saleStoreId),
+        profile.store_id
+          ? supabase.from("current_inventory_view").select("device_id, quantity, store_id").eq("store_id", saleStoreId)
+          : supabase.from("current_inventory_view").select("device_id, quantity, store_id").in("store_id", saleStoreOptions.map((store) => store.id)),
       ])
     : [{ data: null }, { data: null }];
 
-  const stockMap = Object.fromEntries((inventoryForModal ?? []).map((r) => [r.device_id as string, r.quantity as number]));
+  const stockByDeviceStore: Record<string, Record<string, number>> = {};
+  for (const row of inventoryForModal ?? []) {
+    const deviceId = row.device_id as string;
+    const storeId = row.store_id as string;
+    stockByDeviceStore[deviceId] = {
+      ...(stockByDeviceStore[deviceId] ?? {}),
+      [storeId]: row.quantity as number,
+    };
+  }
   const modalDevices = (devicesForModal ?? []).map((d) => ({
     id: d.id as string, name: d.name as string, brand: d.brand as string,
     sku: d.sku as string, unit_price: Number(d.unit_price),
-    stock: stockMap[d.id as string] ?? 0,
+    stock: stockByDeviceStore[d.id as string]?.[saleStoreId] ?? 0,
+    stockByStore: stockByDeviceStore[d.id as string] ?? {},
   }));
 
   let query = supabase
@@ -117,7 +136,15 @@ export default async function SalesPage({
           />
         )}
         {canSell && saleStoreId && (
-          <NewSaleModal storeId={saleStoreId} devices={modalDevices} />
+          <NewSaleModal
+            storeId={saleStoreId}
+            storeName={saleStoreName}
+            stores={saleStoreOptions.map((store) => ({
+              id: store.id as string,
+              name: store.name as string,
+            }))}
+            devices={modalDevices}
+          />
         )}
       </div>
 
@@ -192,7 +219,7 @@ export default async function SalesPage({
                   <Th>Units</Th>
                   <Th>Total</Th>
                   <Th>Notes</Th>
-                  {isAdmin && <Th></Th>}
+                  {isAdmin && <Th><span className="sr-only">Actions</span></Th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50">

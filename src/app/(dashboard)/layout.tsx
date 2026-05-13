@@ -54,7 +54,6 @@ export default async function DashboardLayout({
     <DashboardShell
       userRole={profile.role as UserRole}
       userName={profile.full_name ?? "User"}
-      userEmail={profile.email ?? user.email ?? ""}
       alertCount={alertCount ?? 0}
       userId={user.id}
       storeId={(profile.store_id as string | null) ?? null}

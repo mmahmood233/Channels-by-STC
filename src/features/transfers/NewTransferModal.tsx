@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus, X, Trash2, ArrowLeftRight, Loader2, CheckCircle2 } from "lucide-react";
-import { createTransfer, type TransferLineItem } from "@/app/actions/transfers-create";
+import { createTransfer } from "@/app/actions/transfers-create";
 import { cn } from "@/utils/cn";
 
 interface Store {
@@ -23,6 +23,7 @@ interface NewTransferModalProps {
   currentStoreId: string;
   allStores: Store[];
   inventoryAtCurrentStore: Device[];
+  inventoryByStore?: Record<string, Device[]>;
   userRole: string;
 }
 
@@ -30,6 +31,7 @@ export function NewTransferModal({
   currentStoreId,
   allStores,
   inventoryAtCurrentStore,
+  inventoryByStore,
   userRole,
 }: NewTransferModalProps) {
   const [open, setOpen] = useState(false);
@@ -38,16 +40,44 @@ export function NewTransferModal({
   const [error, setError] = useState<string | null>(null);
 
   const otherStores = allStores.filter((s) => s.id !== currentStoreId);
+  const sourceOptions = allStores.some((s) => s.is_warehouse)
+    ? allStores.filter((s) => s.is_warehouse)
+    : otherStores;
+  const isPrivileged = userRole === "admin" || userRole === "warehouse_manager";
+  const defaultSourceId = isPrivileged
+    ? currentStoreId
+    : (sourceOptions[0]?.id ?? "");
+  const defaultDestinationId = isPrivileged
+    ? (otherStores[0]?.id ?? "")
+    : currentStoreId;
 
-  const [sourceId, setSourceId] = useState(currentStoreId);
-  const [destId, setDestId] = useState(otherStores[0]?.id ?? "");
+  const [sourceId, setSourceId] = useState(defaultSourceId);
+  const [destId, setDestId] = useState(defaultDestinationId);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<{ device_id: string; quantity: number }[]>([
     { device_id: "", quantity: 1 },
   ]);
+  const currentSourceInventory = inventoryByStore?.[sourceId] ?? inventoryAtCurrentStore;
 
-  // For admin/warehouse: source can be anything — use inventory from DB
-  const isPrivileged = userRole === "admin" || userRole === "warehouse_manager";
+  function openModal() {
+    setSourceId(defaultSourceId);
+    setDestId(defaultDestinationId);
+    setItems([{ device_id: "", quantity: 1 }]);
+    setNotes("");
+    setError(null);
+    setOpen(true);
+  }
+
+  function changeSource(nextSourceId: string) {
+    setSourceId(nextSourceId);
+    setItems([{ device_id: "", quantity: 1 }]);
+    setError(null);
+
+    if (nextSourceId === destId) {
+      const nextDestination = allStores.find((store) => store.id !== nextSourceId)?.id ?? "";
+      setDestId(nextDestination);
+    }
+  }
 
   function addItem() {
     setItems((prev) => [...prev, { device_id: "", quantity: 1 }]);
@@ -59,7 +89,18 @@ export function NewTransferModal({
 
   function updateItem(idx: number, field: "device_id" | "quantity", val: string | number) {
     setItems((prev) =>
-      prev.map((item, i) => (i !== idx ? item : { ...item, [field]: field === "quantity" ? Number(val) : val }))
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        if (field === "device_id") return { ...item, device_id: String(val), quantity: 1 };
+        const dev = currentSourceInventory.find((d) => d.id === item.device_id);
+        if (!dev) return { ...item, quantity: Number(val) };
+
+        const usedInOtherRows = prev
+          .filter((row, j) => j !== idx && row.device_id === item.device_id)
+          .reduce((sum, row) => sum + row.quantity, 0);
+        const remaining = dev.quantity - usedInOtherRows;
+        return { ...item, quantity: Math.min(Math.max(1, Number(val)), Math.max(1, remaining)) };
+      })
     );
   }
 
@@ -68,6 +109,16 @@ export function NewTransferModal({
   function submit() {
     if (!validItems.length) { setError("Add at least one item."); return; }
     if (sourceId === destId) { setError("Source and destination must be different."); return; }
+    for (const item of validItems) {
+      const requestedForDevice = validItems
+        .filter((row) => row.device_id === item.device_id)
+        .reduce((sum, row) => sum + row.quantity, 0);
+      const available = currentSourceInventory.find((device) => device.id === item.device_id)?.quantity ?? 0;
+      if (requestedForDevice > available) {
+        setError("Requested quantity is greater than available stock at the source store.");
+        return;
+      }
+    }
     setError(null);
     startTransition(async () => {
       const result = await createTransfer({
@@ -93,7 +144,7 @@ export function NewTransferModal({
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         className="flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
       >
         <Plus className="h-4 w-4" />
@@ -133,7 +184,7 @@ export function NewTransferModal({
                   {isPrivileged ? (
                     <select
                       value={sourceId}
-                      onChange={(e) => setSourceId(e.target.value)}
+                      onChange={(e) => changeSource(e.target.value)}
                       className="input-field"
                     >
                       {allStores.map((s) => (
@@ -143,27 +194,42 @@ export function NewTransferModal({
                       ))}
                     </select>
                   ) : (
-                    <div className="input-field bg-surface-50 text-surface-600">
-                      {allStores.find((s) => s.id === currentStoreId)?.name ?? "Your Store"}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="label">To</label>
-                  <select
-                    value={destId}
-                    onChange={(e) => setDestId(e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">— Select destination —</option>
-                    {allStores
-                      .filter((s) => s.id !== sourceId)
-                      .map((s) => (
+                    <select
+                      value={sourceId}
+                      onChange={(e) => changeSource(e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">— Select source —</option>
+                      {sourceOptions.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}{s.is_warehouse ? " (Warehouse)" : ""}
                         </option>
                       ))}
-                  </select>
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="label">To</label>
+                  {isPrivileged ? (
+                    <select
+                      value={destId}
+                      onChange={(e) => setDestId(e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">— Select destination —</option>
+                      {allStores
+                        .filter((s) => s.id !== sourceId)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}{s.is_warehouse ? " (Warehouse)" : ""}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <div className="input-field bg-surface-50 text-surface-600">
+                      {allStores.find((s) => s.id === currentStoreId)?.name ?? "Your Store"}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -194,9 +260,13 @@ export function NewTransferModal({
 
                 <div className="space-y-2">
                   {items.map((item, idx) => {
-                    const dev = inventoryAtCurrentStore.find(
+                    const dev = currentSourceInventory.find(
                       (d) => d.id === item.device_id
                     );
+                    const usedInOtherRows = items
+                      .filter((row, j) => j !== idx && row.device_id === item.device_id)
+                      .reduce((sum, row) => sum + row.quantity, 0);
+                    const remaining = dev ? dev.quantity - usedInOtherRows : 0;
                     return (
                       <div
                         key={idx}
@@ -211,15 +281,21 @@ export function NewTransferModal({
                             className="input-field"
                           >
                             <option value="">— Select device —</option>
-                            {inventoryAtCurrentStore.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.brand} {d.name} — {d.quantity} in stock
-                              </option>
-                            ))}
+                            {currentSourceInventory.map((d) => {
+                              const usedElsewhere = items
+                                .filter((row, j) => j !== idx && row.device_id === d.id)
+                                .reduce((sum, row) => sum + row.quantity, 0);
+                              const availableForRow = d.quantity - usedElsewhere;
+                              return (
+                                <option key={d.id} value={d.id} disabled={availableForRow <= 0}>
+                                  {d.brand} {d.name} — {availableForRow} in stock
+                                </option>
+                              );
+                            })}
                           </select>
-                          {dev && item.quantity > dev.quantity && (
+                          {dev && item.quantity >= remaining && remaining < dev.quantity && (
                             <p className="mt-0.5 text-xs text-amber-600">
-                              Only {dev.quantity} available
+                              {remaining} remaining after other rows
                             </p>
                           )}
                         </div>
@@ -227,7 +303,7 @@ export function NewTransferModal({
                         <input
                           type="number"
                           min={1}
-                          max={dev?.quantity ?? undefined}
+                          max={remaining > 0 ? remaining : undefined}
                           value={item.quantity}
                           onChange={(e) =>
                             updateItem(idx, "quantity", e.target.value)

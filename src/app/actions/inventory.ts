@@ -1,7 +1,8 @@
 "use server";
 
 // Server action for manual stock adjustments (admin + warehouse manager only)
-// Positive adjustment = add stock, negative = remove stock
+// Positive adjustment = add stock, negative = remove stock.
+// The database RPC keeps inventory and stock movement logs atomic.
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -24,60 +25,17 @@ export async function adjustStock(data: {
   if (data.adjustment === 0) return { error: "Adjustment cannot be zero" };
   if (!data.reason.trim()) return { error: "Reason is required" };
 
-  // Get current inventory row
-  const { data: inv } = await supabase
-    .from("inventory")
-    .select("id, quantity")
-    .eq("store_id", data.store_id)
-    .eq("device_id", data.device_id)
-    .single();
-
-  if (!inv) {
-    // No inventory row yet — only allow positive adjustments to create initial stock
-    if (data.adjustment < 0) return { error: "No inventory record exists for this device at this store" };
-
-    const { error: insertErr } = await supabase
-      .from("inventory")
-      .insert({ store_id: data.store_id, device_id: data.device_id, quantity: data.adjustment });
-
-    if (insertErr) return { error: insertErr.message };
-
-    await supabase.from("stock_movements").insert({
-      store_id: data.store_id,
-      device_id: data.device_id,
-      movement_type: "adjustment",
-      quantity: data.adjustment,
-      reference_type: "manual_adjustment",
-      notes: data.reason,
-      performed_by: user.id,
-    });
-
-    revalidatePath("/inventory");
-    revalidatePath("/dashboard");
-    return { success: true, newQuantity: data.adjustment };
-  }
-
-  const newQty = inv.quantity + data.adjustment;
-  if (newQty < 0) return { error: `Cannot reduce below 0. Current stock: ${inv.quantity}` };
-
-  const { error: updateErr } = await supabase
-    .from("inventory")
-    .update({ quantity: newQty })
-    .eq("id", inv.id);
-
-  if (updateErr) return { error: updateErr.message };
-
-  await supabase.from("stock_movements").insert({
-    store_id: data.store_id,
-    device_id: data.device_id,
-    movement_type: "adjustment",
-    quantity: data.adjustment,
-    reference_type: "manual_adjustment",
-    notes: data.reason,
-    performed_by: user.id,
+  const { data: newQuantity, error } = await supabase.rpc("adjust_stock_atomic", {
+    p_store_id: data.store_id,
+    p_device_id: data.device_id,
+    p_adjustment: data.adjustment,
+    p_reason: data.reason.trim(),
   });
 
+  if (error) return { error: error.message };
+
   revalidatePath("/inventory");
+  revalidatePath("/alerts");
   revalidatePath("/dashboard");
-  return { success: true, newQuantity: newQty };
+  return { success: true, newQuantity };
 }

@@ -22,37 +22,16 @@ export async function createTransfer(data: {
   if (data.source_store_id === data.destination_store_id)
     return { error: "Source and destination must be different" };
 
-  // Insert transfer header
-  const { data: transfer, error: transferErr } = await supabase
-    .from("transfers")
-    .insert({
-      source_store_id: data.source_store_id,
-      destination_store_id: data.destination_store_id,
-      requested_by: user.id,
-      status: "pending",
-      notes: data.notes || null,
-    })
-    .select("id")
-    .single();
+  const { data: transferId, error } = await supabase.rpc("create_transfer_atomic", {
+    p_source_store_id: data.source_store_id,
+    p_destination_store_id: data.destination_store_id,
+    p_notes: data.notes,
+    p_items: data.items,
+  });
 
-  if (transferErr || !transfer)
-    return { error: transferErr?.message ?? "Failed to create transfer" };
-
-  // Insert line items
-  const { error: itemsErr } = await supabase.from("transfer_items").insert(
-    data.items.map((i) => ({
-      transfer_id: transfer.id,
-      device_id: i.device_id,
-      quantity: i.quantity,
-    }))
-  );
-
-  if (itemsErr) {
-    await supabase.from("transfers").delete().eq("id", transfer.id);
-    return { error: itemsErr.message };
-  }
+  if (error) return { error: error.message };
 
   revalidatePath("/transfers");
   revalidatePath("/dashboard");
-  return { success: true, transferId: transfer.id };
+  return { success: true, transferId };
 }

@@ -6,6 +6,16 @@ export default function LoginPage() {
   return (
     <div className="animate-fade-in space-y-8">
 
+      {/* Logo */}
+      <div className="flex justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/logoSTC.png"
+          alt="Channels by stc"
+          style={{ width: "160px", height: "auto" }}
+        />
+      </div>
+
       {/* Header */}
       <div>
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 shadow-lg shadow-brand-600/30">

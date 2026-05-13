@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { PrintButton } from "@/components/ui/PrintButton";
@@ -27,25 +27,44 @@ export default async function InventoryPage({
   const isAdmin = profile.role === "admin";
   const isWarehouse = profile.role === "warehouse_manager";
 
-  const { data: storesRaw } = await supabase
+  const serviceClient = await createServiceRoleClient();
+  const { data: storesRaw } = await serviceClient
     .from("stores")
     .select("id, name, is_warehouse")
     .eq("status", "active")
     .order("name");
   const stores = storesRaw ?? [];
 
-  const sourceStoreId = (profile.store_id as string | null) ??
-    (stores.find((s) => s.is_warehouse)?.id ?? stores[0]?.id ?? "");
-  const { data: sourceInventory } = await supabase
+  const warehouseStoreId = stores.find((s) => s.is_warehouse)?.id ?? stores[0]?.id ?? "";
+  const currentStoreId = (profile.store_id as string | null) ?? warehouseStoreId;
+  const modalSourceStoreId = profile.role === "store_manager" ? warehouseStoreId : currentStoreId;
+  let sourceInventoryQuery = serviceClient
     .from("current_inventory_view")
-    .select("device_id, device_name, brand, sku, quantity")
-    .eq("store_id", sourceStoreId)
+    .select("device_id, device_name, brand, sku, quantity, store_id")
     .gt("quantity", 0)
     .order("device_name");
+  if (profile.role === "store_manager") {
+    sourceInventoryQuery = sourceInventoryQuery.eq("store_id", modalSourceStoreId);
+  }
+  const { data: sourceInventory } = await sourceInventoryQuery;
   const modalInventory = (sourceInventory ?? []).map((r) => ({
     id: r.device_id as string, name: r.device_name as string, brand: r.brand as string,
     sku: r.sku as string, quantity: r.quantity as number,
   }));
+  const modalInventoryByStore: Record<string, typeof modalInventory> = {};
+  for (const row of sourceInventory ?? []) {
+    const storeId = row.store_id as string;
+    modalInventoryByStore[storeId] = [
+      ...(modalInventoryByStore[storeId] ?? []),
+      {
+        id: row.device_id as string,
+        name: row.device_name as string,
+        brand: row.brand as string,
+        sku: row.sku as string,
+        quantity: row.quantity as number,
+      },
+    ];
+  }
   const modalStores = stores.map((s) => ({
     id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
   }));
@@ -118,11 +137,12 @@ export default async function InventoryPage({
               Adjust Stock
             </a>
           )}
-          {sourceStoreId && (
+          {currentStoreId && (
             <NewTransferModal
-              currentStoreId={sourceStoreId}
+              currentStoreId={currentStoreId}
               allStores={modalStores}
-              inventoryAtCurrentStore={modalInventory}
+              inventoryAtCurrentStore={modalInventoryByStore[modalSourceStoreId] ?? modalInventory}
+              inventoryByStore={modalInventoryByStore}
               userRole={profile.role as string}
             />
           )}

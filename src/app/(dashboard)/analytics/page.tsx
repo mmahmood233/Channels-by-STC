@@ -5,6 +5,7 @@ import { DateRangePicker } from "@/features/analytics/DateRangePicker";
 import { Suspense } from "react";
 import { CURRENCY_SYMBOL } from "@/constants";
 import { formatCurrency } from "@/utils/format";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 
 export default async function AnalyticsPage({
   searchParams,
@@ -44,16 +45,17 @@ export default async function AnalyticsPage({
     salesQuery = salesQuery.eq("store_id", profile.store_id);
   }
 
-  const [
-    { data: salesData },
-    { data: topDevicesRaw },
-    { data: inventoryRaw },
-  ] = await Promise.all([
+  let inventoryQuery = supabase
+    .from("current_inventory_view")
+    .select("device_id, quantity");
+
+  if (!isAdmin && !isWarehouse && profile.store_id) {
+    inventoryQuery = inventoryQuery.eq("store_id", profile.store_id);
+  }
+
+  const [{ data: salesData }, { data: inventoryRaw }] = await Promise.all([
     salesQuery,
-    supabase.from("top_selling_devices_view")
-      .select("device_id, device_name, total_units_sold, total_revenue")
-      .order("total_revenue", { ascending: false }).limit(10),
-    supabase.from("current_inventory_view").select("device_id, quantity"),
+    inventoryQuery,
   ]);
 
   // ── Revenue over time ────────────────────────────────────────────────────────
@@ -70,13 +72,23 @@ export default async function AnalyticsPage({
     }));
 
   // ── Top devices ──────────────────────────────────────────────────────────────
-  const topDevices = (topDevicesRaw ?? []).map((d) => ({
-    name: (d.device_name as string).length > 18
-      ? (d.device_name as string).slice(0, 18) + "…"
-      : (d.device_name as string),
-    revenue: Number(d.total_revenue),
-    units: d.total_units_sold as number,
-  }));
+  const topDeviceMap: Record<string, { name: string; revenue: number; units: number }> = {};
+  for (const row of salesData ?? []) {
+    const id = row.device_id as string;
+    topDeviceMap[id] = {
+      name: row.device_name as string,
+      revenue: (topDeviceMap[id]?.revenue ?? 0) + Number(row.total_revenue),
+      units: (topDeviceMap[id]?.units ?? 0) + (row.total_units_sold as number),
+    };
+  }
+  const topDevices = Object.values(topDeviceMap)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10)
+    .map((d) => ({
+      name: d.name.length > 18 ? d.name.slice(0, 18) + "…" : d.name,
+      revenue: d.revenue,
+      units: d.units,
+    }));
 
   // ── Store comparison (latest month in range) ─────────────────────────────────
   const storeRevMap: Record<string, number> = {};
@@ -131,9 +143,24 @@ export default async function AnalyticsPage({
       {/* Date range picker */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-medium text-surface-500">{rangeLabel}</p>
-        <Suspense>
-          <DateRangePicker from={fromDate} to={toDate} />
-        </Suspense>
+        <div className="flex flex-wrap items-center gap-2 no-print">
+          {(salesData ?? []).length > 0 && (
+            <ExportCsvButton
+              filename="analytics-sales-report.csv"
+              headers={["Month", "Store", "Device", "Units Sold", "Revenue (BHD)"]}
+              rows={(salesData ?? []).map((row) => [
+                row.sale_month as string,
+                row.store_name as string,
+                row.device_name as string,
+                row.total_units_sold as number,
+                Number(row.total_revenue).toFixed(3),
+              ])}
+            />
+          )}
+          <Suspense>
+            <DateRangePicker from={fromDate} to={toDate} />
+          </Suspense>
+        </div>
       </div>
 
       {/* KPI cards */}

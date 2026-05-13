@@ -22,6 +22,7 @@ export const TRANSFER_STATUS_CONFIG = {
   approved: { label: "Approved", color: "blue" },
   in_transit: { label: "In Transit", color: "purple" },
   completed: { label: "Completed", color: "green" },
+  rejected: { label: "Rejected", color: "red" },
   cancelled: { label: "Cancelled", color: "red" },
 } as const;
 
@@ -58,6 +59,8 @@ export const ROUTES = {
   FORGOT_PASSWORD: "/forgot-password",
   DASHBOARD: "/dashboard",
   DEVICES: "/devices",
+  CATEGORIES: "/categories",
+  STORES: "/stores",
   INVENTORY: "/inventory",
   SALES: "/sales",
   TRANSFERS: "/transfers",

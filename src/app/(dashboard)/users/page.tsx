@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CreateUserModal } from "@/features/users/CreateUserModal";
 import { UsersTable } from "@/features/users/UsersTable";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
+import { PrintButton } from "@/components/ui/PrintButton";
+import { formatDateTime } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
 export default async function UsersPage({
@@ -56,6 +59,22 @@ export default async function UsersPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-surface-500">{userList.length} users</p>
         <div className="flex items-center gap-2">
+          {userList.length > 0 && <PrintButton />}
+          {userList.length > 0 && (
+            <ExportCsvButton
+              filename="users-report.csv"
+              headers={["Email", "Name", "Role", "Store", "Status", "Last Sign In", "Created"]}
+              rows={userList.map((profile) => [
+                profile.email,
+                profile.full_name,
+                profile.role,
+                profile.store_name ?? "",
+                profile.status,
+                profile.last_sign_in_at ? formatDateTime(profile.last_sign_in_at) : "",
+                formatDateTime(profile.created_at),
+              ])}
+            />
+          )}
           <CreateUserModal stores={stores} />
         </div>
       </div>

@@ -9,6 +9,8 @@ import type { UserRole } from "@/types";
 function deriveTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard")) return "Dashboard";
   if (pathname.startsWith("/devices")) return "Devices";
+  if (pathname.startsWith("/categories")) return "Categories";
+  if (pathname.startsWith("/stores")) return "Stores";
   if (pathname.startsWith("/inventory")) return "Inventory";
   if (pathname.startsWith("/sales")) return "Sales";
   if (pathname.startsWith("/transfers")) return "Transfers";

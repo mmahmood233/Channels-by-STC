@@ -2,7 +2,7 @@
 // Fetches low-stock items, forecast warnings, and sales velocity,
 // then calls GPT-4o-mini to generate restock transfer suggestions.
 // Post-processes AI output to strip any hallucinated IDs.
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
 
@@ -23,7 +23,7 @@ export interface RestockSuggestion {
   warehouseStoreId: string;
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
       { data: forecasts },
       { data: topSelling },
       { data: stores },
+      { data: warehouseInventory },
     ] = await Promise.all([
       // Current low/out of stock items
       supabase
@@ -65,9 +66,17 @@ export async function GET(req: NextRequest) {
         .limit(20),
       // All stores + warehouse info
       supabase.from("stores").select("id, name, is_warehouse").eq("status", "active"),
+      // Warehouse availability guardrail
+      supabase
+        .from("current_inventory_view")
+        .select("device_id, quantity")
+        .eq("is_warehouse", true),
     ]);
 
     const warehouseStore = stores?.find(s => s.is_warehouse);
+    const warehouseStock = new Map(
+      (warehouseInventory ?? []).map((row) => [row.device_id as string, row.quantity as number])
+    );
 
     // Build context for the AI — include real UUIDs so AI uses them directly
     const lowStockLines = (lowStock ?? []).map(r =>
@@ -140,15 +149,22 @@ Rules:
       ...(forecasts ?? []).map(r => r.device_id as string),
       ...(topSelling ?? []).map(r => r.device_id as string),
     ]);
-    const validStoreIds = new Set((stores ?? []).map(s => s.id as string));
+    const storeById = new Map((stores ?? []).map(s => [s.id as string, s]));
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    suggestions = suggestions.filter(s =>
-      uuidRegex.test(s.deviceId) &&
-      uuidRegex.test(s.storeId) &&
-      validDeviceIds.has(s.deviceId) &&
-      validStoreIds.has(s.storeId)
-    );
+    suggestions = suggestions.filter((s) => {
+      const destinationStore = storeById.get(s.storeId);
+      const availableAtWarehouse = warehouseStock.get(s.deviceId) ?? 0;
+
+      return uuidRegex.test(s.deviceId) &&
+        uuidRegex.test(s.storeId) &&
+        validDeviceIds.has(s.deviceId) &&
+        Boolean(destinationStore) &&
+        destinationStore?.is_warehouse === false &&
+        Number.isInteger(s.suggestedQty) &&
+        s.suggestedQty > 0 &&
+        s.suggestedQty <= availableAtWarehouse;
+    });
 
     // Attach warehouseStoreId to each suggestion
     const warehouseId = warehouseStore?.id ?? "";

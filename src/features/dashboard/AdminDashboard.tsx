@@ -4,7 +4,6 @@ import {
 } from "lucide-react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { NewSaleModal } from "@/features/sales/NewSaleModal";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { formatCurrency, formatDate } from "@/utils/format";
@@ -17,7 +16,7 @@ interface Props {
   userName: string;
 }
 
-export async function AdminDashboard({ userId, userName }: Props) {
+export async function AdminDashboard({ userName }: Props) {
   const supabase = await createServerSupabaseClient();
 
   const now = new Date();
@@ -67,20 +66,48 @@ export async function AdminDashboard({ userId, userName }: Props) {
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = userName.split(" ")[0];
 
-  const modalDevices = (devicesForModal ?? []).map((d) => ({
-    id: d.id as string, name: d.name as string, brand: d.brand as string,
-    sku: d.sku as string, unit_price: Number(d.unit_price),
-  }));
   const modalStores = (allStores ?? []).map((s) => ({
     id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
   }));
-  const firstStoreId = modalStores.find((s) => !s.is_warehouse)?.id ?? modalStores[0]?.id ?? "";
+  const saleStores = modalStores.filter((store) => !store.is_warehouse);
+  const firstStoreId = saleStores[0]?.id ?? modalStores[0]?.id ?? "";
+  const firstStoreName = modalStores.find((s) => s.id === firstStoreId)?.name ?? "Selected store";
+  const stockByDeviceStore: Record<string, Record<string, number>> = {};
+  for (const row of inventoryForModal ?? []) {
+    const deviceId = row.device_id as string;
+    const storeId = row.store_id as string;
+    stockByDeviceStore[deviceId] = {
+      ...(stockByDeviceStore[deviceId] ?? {}),
+      [storeId]: row.quantity as number,
+    };
+  }
+  const modalDevices = (devicesForModal ?? []).map((d) => ({
+    id: d.id as string, name: d.name as string, brand: d.brand as string,
+    sku: d.sku as string,
+    unit_price: Number(d.unit_price),
+    stock: stockByDeviceStore[d.id as string]?.[firstStoreId] ?? 0,
+    stockByStore: stockByDeviceStore[d.id as string] ?? {},
+  }));
   const modalInventory = (inventoryForModal ?? [])
     .filter((r) => r.store_id === firstStoreId)
     .map((r) => ({
       id: r.device_id as string, name: r.device_name as string, brand: r.brand as string,
       sku: r.sku as string, quantity: r.quantity as number,
     }));
+  const modalInventoryByStore: Record<string, typeof modalInventory> = {};
+  for (const row of inventoryForModal ?? []) {
+    const storeId = row.store_id as string;
+    modalInventoryByStore[storeId] = [
+      ...(modalInventoryByStore[storeId] ?? []),
+      {
+        id: row.device_id as string,
+        name: row.device_name as string,
+        brand: row.brand as string,
+        sku: row.sku as string,
+        quantity: row.quantity as number,
+      },
+    ];
+  }
 
   return (
     <div className="space-y-8">
@@ -93,11 +120,17 @@ export async function AdminDashboard({ userId, userName }: Props) {
           </p>
         </div>
         <div className="flex gap-3">
-          <NewSaleModal storeId={firstStoreId} devices={modalDevices} />
+          <NewSaleModal
+            storeId={firstStoreId}
+            storeName={firstStoreName}
+            stores={saleStores.map((store) => ({ id: store.id, name: store.name }))}
+            devices={modalDevices}
+          />
           <NewTransferModal
             currentStoreId={firstStoreId}
             allStores={modalStores}
             inventoryAtCurrentStore={modalInventory}
+            inventoryByStore={modalInventoryByStore}
             userRole="admin"
           />
         </div>
@@ -158,7 +191,7 @@ export async function AdminDashboard({ userId, userName }: Props) {
         <Panel title="Transfers" icon={<ArrowLeftRight className="h-4 w-4 text-surface-400" />} href="/transfers">
           {recentTransfers && recentTransfers.length > 0 ? recentTransfers.map((t) => {
             const cfg = TRANSFER_STATUS_CONFIG[t.status as keyof typeof TRANSFER_STATUS_CONFIG];
-            const v = t.status === "completed" ? "success" : t.status === "cancelled" ? "danger" : t.status === "pending" ? "warning" : "info";
+            const v = t.status === "completed" ? "success" : t.status === "cancelled" || t.status === "rejected" ? "danger" : t.status === "pending" ? "warning" : "info";
             return (
               <PanelRow key={t.id}>
                 <Clock className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />

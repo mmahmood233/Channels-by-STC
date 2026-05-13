@@ -9,7 +9,6 @@ interface DashboardShellProps {
   children: React.ReactNode;
   userRole: UserRole;
   userName: string;
-  userEmail: string;
   alertCount?: number;
   userId: string;
   storeId: string | null;
@@ -19,7 +18,6 @@ export function DashboardShell({
   children,
   userRole,
   userName,
-  userEmail,
   alertCount = 0,
   userId,
   storeId,
@@ -31,7 +29,6 @@ export function DashboardShell({
       <Sidebar
         userRole={userRole}
         userName={userName}
-        userEmail={userEmail}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />

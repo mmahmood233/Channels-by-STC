@@ -107,7 +107,7 @@ export interface TransferRow {
   destination_store_id: string;
   requested_by: string;
   approved_by: string | null;
-  status: "pending" | "approved" | "in_transit" | "completed" | "cancelled";
+  status: "pending" | "approved" | "in_transit" | "completed" | "rejected" | "cancelled";
   notes: string | null;
   transfer_date: string | null;
   created_at: string;
@@ -400,7 +400,7 @@ export type Database = {
       location_status: "active" | "inactive";
       device_status: "active" | "discontinued";
       movement_type: "sale" | "transfer_in" | "transfer_out" | "restock" | "adjustment" | "return";
-      transfer_status: "pending" | "approved" | "in_transit" | "completed" | "cancelled";
+      transfer_status: "pending" | "approved" | "in_transit" | "completed" | "rejected" | "cancelled";
       alert_type: "low_stock" | "out_of_stock" | "overstock" | "forecast_warning" | "restock_suggestion";
       alert_severity: "low" | "medium" | "high" | "critical";
       alert_status: "active" | "acknowledged" | "resolved" | "dismissed";

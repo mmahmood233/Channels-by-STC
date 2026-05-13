@@ -23,8 +23,12 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
   const canReject =
     (userRole === "admin" || userRole === "warehouse_manager") &&
     (status === "pending" || status === "approved");
-  const canTransit = status === "approved";
-  const canComplete = status === "in_transit";
+  const canTransit =
+    (userRole === "admin" || userRole === "warehouse_manager") &&
+    status === "approved";
+  const canComplete =
+    (userRole === "admin" || userRole === "warehouse_manager") &&
+    status === "in_transit";
 
   if (!canApprove && !canReject && !canTransit && !canComplete) return null;
 

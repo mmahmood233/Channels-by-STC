@@ -228,7 +228,7 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
   return qs ? `${base}?${qs}` : base;
 }
 
-function FilterChip({ href, active, label, color }: { href: string; active: boolean; label: string; color?: string }) {
+function FilterChip({ href, active, label }: { href: string; active: boolean; label: string; color?: string }) {
   return (
     <a href={href} className={cn(
       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",

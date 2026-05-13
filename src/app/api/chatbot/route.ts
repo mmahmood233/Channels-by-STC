@@ -9,6 +9,14 @@ import type { UserRole } from "@/types";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
+  const logContext: {
+    userId?: string;
+    role?: UserRole;
+    storeId?: string | null;
+    question?: string;
+    startedAt: number;
+  } = { startedAt: Date.now() };
+
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -17,6 +25,9 @@ export async function POST(req: NextRequest) {
     const { message, history = [] } = await req.json();
     if (!message || typeof message !== "string")
       return NextResponse.json({ error: "Message required" }, { status: 400 });
+
+    logContext.userId = user.id;
+    logContext.question = message;
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -29,6 +40,8 @@ export async function POST(req: NextRequest) {
     const storeName = (profile.stores as unknown as { name: string } | null)?.name;
     const storeId = profile.store_id as string | null;
     const isStoreManager = role === "store_manager";
+    logContext.role = role;
+    logContext.storeId = storeId;
 
     const contextParts: string[] = [];
 
@@ -168,17 +181,19 @@ export async function POST(req: NextRequest) {
 
     // ── 6. Forecasts ─────────────────────────────────────────────────────────
     let forecastQuery = supabase
-      .from("forecasts")
-      .select("predicted_demand, risk_level, forecast_month, devices(name, brand), stores(name)")
-      .order("forecast_month", { ascending: false })
+      .from("forecast_vs_inventory_view")
+      .select("predicted_quantity, risk_level, forecast_period, device_name, store_name")
+      .order("forecast_period", { ascending: false })
       .limit(30);
-    if (isStoreManager && storeId) forecastQuery = forecastQuery.eq("store_id", storeId);
+    if (isStoreManager && storeId) {
+      forecastQuery = forecastQuery.or(`store_id.eq.${storeId},store_id.is.null`);
+    }
     const { data: forecasts } = await forecastQuery;
     if (forecasts && forecasts.length > 0) {
       const critical = forecasts.filter((f) => f.risk_level === "shortage_expected");
       const atRisk = forecasts.filter((f) => f.risk_level === "at_risk");
       const lines = [...critical, ...atRisk].slice(0, 15).map(
-        (f) => `  - ${(f.devices as unknown as { brand: string; name: string } | null)?.brand} ${(f.devices as unknown as { brand: string; name: string } | null)?.name} @ ${(f.stores as unknown as { name: string } | null)?.name ?? "All"}: predicted ${f.predicted_demand} units [${f.risk_level}]`
+        (f) => `  - ${f.device_name} @ ${f.store_name ?? "Global"}: predicted ${f.predicted_quantity} units [${f.risk_level}]`
       );
       contextParts.push(
         `## Demand Forecasts\n  Critical shortages: ${critical.length}, At risk: ${atRisk.length}\n${lines.join("\n")}`
@@ -224,6 +239,23 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     console.error("[chatbot route]", err);
     const msg = err instanceof Error ? err.message : "Unexpected error";
+    if (logContext.userId && logContext.question && logContext.role) {
+      try {
+        const supabase = await createServerSupabaseClient();
+        await supabase.from("chatbot_logs").insert({
+          user_id: logContext.userId,
+          user_role: logContext.role,
+          store_id: logContext.storeId ?? null,
+          question: logContext.question,
+          answer: "",
+          status: "error",
+          error_message: msg,
+          response_time_ms: Date.now() - logContext.startedAt,
+        });
+      } catch (logError) {
+        console.error("[chatbot route] Failed to write error log:", logError);
+      }
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

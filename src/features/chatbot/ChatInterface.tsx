@@ -29,7 +29,6 @@ export function ChatInterface() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -42,7 +41,6 @@ export function ChatInterface() {
     if (!question || loading) return;
 
     setInput("");
-    setError(null);
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: "user",
@@ -71,7 +69,6 @@ export function ChatInterface() {
       ]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
-      setError(msg);
       setMessages((prev) => [
         ...prev,
         {
@@ -102,7 +99,6 @@ export function ChatInterface() {
           "Hi! I'm your inventory assistant. I can answer questions about stock levels, sales, transfers, forecasts, and alerts. What would you like to know?",
       },
     ]);
-    setError(null);
     setInput("");
   }
 

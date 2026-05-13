@@ -1,4 +1,4 @@
-import Image from "next/image";
+
 import {
   BarChart3, Package, ArrowLeftRight,
   ShoppingCart, Bot, TrendingUp,
@@ -50,13 +50,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <Image
-              src="/images/logoSTC.png"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo-white.svg"
               alt="Channels by stc"
-              width={160}
-              height={40}
-              className="brightness-0 invert"
-              priority
+              style={{ width: "160px", height: "auto" }}
             />
           </div>
 
@@ -115,7 +113,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 <div className="h-2 w-2 rounded-sm bg-white/30" />
               </div>
               <p className="text-xs text-white/30">
-                © {new Date().getFullYear()} Channels by stc · Bahrain · Graduation Project
+                © {new Date().getFullYear()} Channels by stc · Bahrain · Smart Inventory & Stock Automation System
               </p>
             </div>
           </div>
@@ -126,12 +124,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="flex w-full flex-col lg:w-[48%]">
         {/* Mobile top bar */}
         <div className="flex items-center justify-center border-b border-surface-100 py-5 lg:hidden">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/images/logoSTC.png"
             alt="Channels by stc"
-            width={140}
-            height={35}
-            priority
+            style={{ width: "140px", height: "auto" }}
           />
         </div>
 

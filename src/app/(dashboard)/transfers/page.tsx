@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
@@ -31,25 +31,44 @@ export default async function TransfersPage({
   const isAdmin = profile.role === "admin";
   const isWarehouse = profile.role === "warehouse_manager";
 
-  const { data: stores } = await supabase
+  // Use service role to fetch all stores — RLS restricts store managers to their own store only
+  const serviceClient = await createServiceRoleClient();
+  const { data: stores } = await serviceClient
     .from("stores")
     .select("id, name, is_warehouse")
     .eq("status", "active")
     .order("name");
 
-  // Inventory at user's store for the modal
-  const sourceStoreId = (profile.store_id as string | null) ??
-    (stores?.find((s) => s.is_warehouse)?.id ?? stores?.[0]?.id ?? "");
-  const { data: sourceInventory } = await supabase
+  const warehouseStoreId = stores?.find((s) => s.is_warehouse)?.id ?? stores?.[0]?.id ?? "";
+  const currentStoreId = (profile.store_id as string | null) ?? warehouseStoreId;
+  const modalSourceStoreId = profile.role === "store_manager" ? warehouseStoreId : currentStoreId;
+  let sourceInventoryQuery = serviceClient
     .from("current_inventory_view")
-    .select("device_id, device_name, brand, sku, quantity")
-    .eq("store_id", sourceStoreId)
+    .select("device_id, device_name, brand, sku, quantity, store_id")
     .gt("quantity", 0)
     .order("device_name");
+  if (profile.role === "store_manager") {
+    sourceInventoryQuery = sourceInventoryQuery.eq("store_id", modalSourceStoreId);
+  }
+  const { data: sourceInventory } = await sourceInventoryQuery;
   const modalInventory = (sourceInventory ?? []).map((r) => ({
     id: r.device_id as string, name: r.device_name as string, brand: r.brand as string,
     sku: r.sku as string, quantity: r.quantity as number,
   }));
+  const modalInventoryByStore: Record<string, typeof modalInventory> = {};
+  for (const row of sourceInventory ?? []) {
+    const storeId = row.store_id as string;
+    modalInventoryByStore[storeId] = [
+      ...(modalInventoryByStore[storeId] ?? []),
+      {
+        id: row.device_id as string,
+        name: row.device_name as string,
+        brand: row.brand as string,
+        sku: row.sku as string,
+        quantity: row.quantity as number,
+      },
+    ];
+  }
   const modalStores = (stores ?? []).map((s) => ({
     id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
   }));
@@ -112,9 +131,10 @@ export default async function TransfersPage({
           />
         )}
         <NewTransferModal
-          currentStoreId={sourceStoreId}
+          currentStoreId={currentStoreId}
           allStores={modalStores}
-          inventoryAtCurrentStore={modalInventory}
+          inventoryAtCurrentStore={modalInventoryByStore[modalSourceStoreId] ?? modalInventory}
+          inventoryByStore={modalInventoryByStore}
           userRole={profile.role as string}
         />
       </div>
@@ -153,7 +173,7 @@ export default async function TransfersPage({
                   const cfg = TRANSFER_STATUS_CONFIG[t.status as keyof typeof TRANSFER_STATUS_CONFIG];
                   const badgeVariant =
                     t.status === "completed" ? "success"
-                    : t.status === "cancelled" ? "danger"
+                    : t.status === "cancelled" || t.status === "rejected" ? "danger"
                     : t.status === "pending" ? "warning"
                     : "info";
                   const from = (t.from_store as unknown as { name: string } | null)?.name;

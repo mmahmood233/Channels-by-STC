@@ -69,7 +69,7 @@ export default async function ForecastsPage({
               f.predicted_quantity,
               f.current_stock,
               f.stock_gap,
-              f.confidence_score !== null ? `${(f.confidence_score * 100).toFixed(0)}%` : "",
+              f.confidence_score !== null ? `${Number(f.confidence_score).toFixed(0)}%` : "",
               f.risk_level,
             ])}
           />
@@ -199,15 +199,15 @@ export default async function ForecastsPage({
                               <div
                                 className={cn(
                                   "h-full rounded-full",
-                                  f.confidence_score >= 0.7 ? "bg-green-500"
-                                  : f.confidence_score >= 0.4 ? "bg-amber-500"
+                                  f.confidence_score >= 70 ? "bg-green-500"
+                                  : f.confidence_score >= 40 ? "bg-amber-500"
                                   : "bg-red-500"
                                 )}
-                                style={{ width: `${(f.confidence_score * 100).toFixed(0)}%` }}
+                                style={{ width: `${Math.min(100, Math.max(0, Number(f.confidence_score))).toFixed(0)}%` }}
                               />
                             </div>
                             <span className="text-xs text-surface-500">
-                              {(f.confidence_score * 100).toFixed(0)}%
+                              {Number(f.confidence_score).toFixed(0)}%
                             </span>
                           </div>
                         ) : "—"}

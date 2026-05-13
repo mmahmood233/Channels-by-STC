@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = SupabaseClient<any, "public", any>;
 
 export async function getProfile(supabase: Client, userId: string) {

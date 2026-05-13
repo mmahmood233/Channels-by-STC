@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell, AlertTriangle, ArrowLeftRight, X, CheckCheck,
   ShoppingCart, UserPlus, TrendingDown, PackageX, PackageMinus,
@@ -63,16 +63,26 @@ function NotifIcon({ type }: { type: NotifType }) {
 export function NotificationCenter({ userId, storeId, userRole, initialCount }: Props) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const panelRef = useRef<HTMLDivElement>(null);
 
   const isAdmin     = userRole === "admin";
   const isWarehouse = userRole === "warehouse_manager";
   const isStore     = userRole === "store_manager";
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = useMemo(
+    () =>
+      createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      ),
+    []
   );
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Load existing active alerts into the panel on mount
   useEffect(() => {
@@ -120,7 +130,7 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
       setNotifications(initial);
     }
     loadInitial();
-  }, [storeId, userRole]);
+  }, [isStore, storeId, supabase]);
 
   function push(notif: Omit<Notification, "read">) {
     setNotifications((prev) => {
@@ -294,7 +304,7 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
             id: `forecast-${row.id}`,
             type: "forecast_warning",
             title: "Forecast Updated",
-            body: `New demand forecast generated — predicted ${row.predicted_quantity} units needed${row.confidence_score != null ? ` (${(row.confidence_score * 100).toFixed(0)}% confidence)` : ""}`,
+            body: `New demand forecast generated — predicted ${row.predicted_quantity} units needed${row.confidence_score != null ? ` (${Number(row.confidence_score).toFixed(0)}% confidence)` : ""}`,
             at: new Date(row.created_at),
           });
         })
@@ -331,7 +341,7 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
     return () => {
       channels.forEach((ch) => supabase.removeChannel(ch));
     };
-  }, [storeId, userRole, userId]);
+  }, [isAdmin, isStore, isWarehouse, storeId, supabase, userId]);
 
   // Close panel on outside click
   useEffect(() => {
@@ -353,7 +363,7 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
   }
 
   function formatRelative(date: Date) {
-    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    const diff = Math.floor((nowMs - date.getTime()) / 1000);
     if (diff < 60) return "just now";
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

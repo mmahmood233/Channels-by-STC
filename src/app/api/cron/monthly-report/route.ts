@@ -17,6 +17,23 @@ function formatBhd(amount: number) {
   })}`;
 }
 
+async function logMonthlyReportFailure(errorMessage: string, details?: Record<string, unknown>) {
+  try {
+    const supabase = await createServiceRoleClient();
+    await supabase.from("automation_logs").insert({
+      automation_type: "monthly_email_report",
+      status: "error",
+      records_processed: 0,
+      records_created: 0,
+      details: details ?? {},
+      error_message: errorMessage,
+      completed_at: new Date().toISOString(),
+    });
+  } catch (logError) {
+    console.error("[monthly-report] Failed to write failure log:", logError);
+  }
+}
+
 export async function GET(req: NextRequest) {
   // Verify cron secret — Vercel sends Authorization: Bearer <CRON_SECRET>
   const authHeader = req.headers.get("authorization");
@@ -37,7 +54,7 @@ export async function GET(req: NextRequest) {
     // Fetch all data in parallel
     const [
       { data: salesData },
-      { data: topDevicesRaw },
+      { data: salesRecords },
       { count: lowStockCount },
       { count: outOfStockCount },
       { count: activeAlerts },
@@ -50,10 +67,10 @@ export async function GET(req: NextRequest) {
         .gte("sale_month", startOfLastMonth)
         .lte("sale_month", endOfLastMonth),
       supabase
-        .from("top_selling_devices_view")
-        .select("device_name, total_units_sold, total_revenue")
-        .order("total_revenue", { ascending: false })
-        .limit(5),
+        .from("sales")
+        .select("id, store_id, stores(name)")
+        .gte("sale_date", startOfLastMonth)
+        .lte("sale_date", endOfLastMonth),
       supabase
         .from("current_inventory_view")
         .select("inventory_id", { count: "exact", head: true })
@@ -85,23 +102,40 @@ export async function GET(req: NextRequest) {
     const totalRevenue = (salesData ?? []).reduce((s, r) => s + Number(r.total_revenue), 0);
     const totalUnits = (salesData ?? []).reduce((s, r) => s + (r.total_units_sold as number), 0);
 
-    // Count unique transactions (approximate from monthly_sales_view rows as proxy)
-    const totalSales = (salesData ?? []).length;
+    const totalSales = salesRecords?.length ?? 0;
 
-    // Top devices
-    const topDevices = (topDevicesRaw ?? []).map((d) => ({
-      name: d.device_name as string,
-      units: d.total_units_sold as number,
-      revenue: formatBhd(Number(d.total_revenue)),
-    }));
+    // Top devices for the reported month
+    const topDeviceMap: Record<string, { name: string; units: number; revenue: number }> = {};
+    for (const row of salesData ?? []) {
+      const id = row.device_id as string;
+      topDeviceMap[id] = {
+        name: row.device_name as string,
+        units: (topDeviceMap[id]?.units ?? 0) + (row.total_units_sold as number),
+        revenue: (topDeviceMap[id]?.revenue ?? 0) + Number(row.total_revenue),
+      };
+    }
+    const topDevices = Object.values(topDeviceMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+      .map((device) => ({
+        name: device.name,
+        units: device.units,
+        revenue: formatBhd(device.revenue),
+      }));
 
     // Store breakdown from salesData
+    const storeSaleCounts: Record<string, number> = {};
+    for (const sale of salesRecords ?? []) {
+      const storeName = (sale.stores as unknown as { name: string } | null)?.name ?? "Unknown Store";
+      storeSaleCounts[storeName] = (storeSaleCounts[storeName] ?? 0) + 1;
+    }
+
     const storeMap: Record<string, { revenue: number; sales: number }> = {};
     for (const row of salesData ?? []) {
       const name = row.store_name as string;
       storeMap[name] = {
         revenue: (storeMap[name]?.revenue ?? 0) + Number(row.total_revenue),
-        sales: (storeMap[name]?.sales ?? 0) + 1,
+        sales: storeSaleCounts[name] ?? 0,
       };
     }
     const storeBreakdown = Object.entries(storeMap)
@@ -143,15 +177,31 @@ export async function GET(req: NextRequest) {
     }
 
     if (sent === 0) {
+      await supabase.from("automation_logs").insert({
+        automation_type: "monthly_email_report",
+        status: "error",
+        records_processed: adminEmails.length,
+        records_created: 0,
+        details: { month: monthLabel, attempted_recipients: adminEmails.length },
+        error_message: "Failed to send to any recipient",
+        completed_at: new Date().toISOString(),
+      });
       return NextResponse.json({ error: "Failed to send to any recipient" }, { status: 500 });
     }
 
     // Log to automation_logs
     await supabase.from("automation_logs").insert({
-      script_name: "monthly_email_report",
+      automation_type: "monthly_email_report",
       status: "success",
       records_processed: sent,
-      message: `Monthly report for ${monthLabel} sent to ${sent} admin(s)`,
+      records_created: sent,
+      details: {
+        month: monthLabel,
+        recipients: sent,
+        total_revenue: totalRevenue,
+        total_units: totalUnits,
+      },
+      completed_at: new Date().toISOString(),
     });
 
     return NextResponse.json({
@@ -161,6 +211,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("[monthly-report] Unexpected error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Internal server error";
+    await logMonthlyReportFailure(message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

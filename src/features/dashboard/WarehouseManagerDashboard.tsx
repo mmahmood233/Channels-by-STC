@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { TransferActions } from "@/features/transfers/TransferActions";
 import { formatCurrency, formatDate } from "@/utils/format";
-import { TRANSFER_STATUS_CONFIG, ALERT_SEVERITY_CONFIG } from "@/constants";
+import { ALERT_SEVERITY_CONFIG } from "@/constants";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { cn } from "@/utils/cn";
 
@@ -18,7 +18,7 @@ interface Props {
   userName: string;
 }
 
-export async function WarehouseManagerDashboard({ userId, userName }: Props) {
+export async function WarehouseManagerDashboard({ userName }: Props) {
   const supabase = await createServerSupabaseClient();
 
   const now = new Date();
@@ -34,7 +34,6 @@ export async function WarehouseManagerDashboard({ userId, userName }: Props) {
     { data: recentAlerts },
     { data: topSellingMonth },
     { data: inventoryForModal },
-    { data: devicesRef },
   ] = await Promise.all([
     // All active stores
     supabase.from("stores").select("id, name, code, is_warehouse").eq("status", "active").order("is_warehouse", { ascending: false }).order("name"),
@@ -72,8 +71,6 @@ export async function WarehouseManagerDashboard({ userId, userName }: Props) {
       .select("device_id, device_name, brand, sku, quantity, store_id")
       .gt("quantity", 0)
       .order("device_name"),
-    // Device list ref
-    supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand"),
   ]);
 
   // Build per-store inventory summary
@@ -87,7 +84,7 @@ export async function WarehouseManagerDashboard({ userId, userName }: Props) {
     if (row.stock_status === "low_stock") storeMap[sid].low++;
     if (row.stock_status === "out_of_stock") storeMap[sid].out++;
   }
-  const storeSnapshots = Object.values(storeMap).sort((a, b) => (a.is_warehouse ? -1 : 1));
+  const storeSnapshots = Object.values(storeMap).sort((a) => (a.is_warehouse ? -1 : 1));
 
   const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = userName.split(" ")[0];
@@ -99,6 +96,20 @@ export async function WarehouseManagerDashboard({ userId, userName }: Props) {
     sku: r.sku as string,
     quantity: r.quantity as number,
   }));
+  const modalInventoryByStore: Record<string, typeof modalInventory> = {};
+  for (const row of inventoryForModal ?? []) {
+    const storeId = row.store_id as string;
+    modalInventoryByStore[storeId] = [
+      ...(modalInventoryByStore[storeId] ?? []),
+      {
+        id: row.device_id as string,
+        name: row.device_name as string,
+        brand: row.brand as string,
+        sku: row.sku as string,
+        quantity: row.quantity as number,
+      },
+    ];
+  }
 
   const modalStores = (allStores ?? []).map((s) => ({
     id: s.id as string,
@@ -125,7 +136,8 @@ export async function WarehouseManagerDashboard({ userId, userName }: Props) {
         <NewTransferModal
           currentStoreId={warehouseId}
           allStores={modalStores}
-          inventoryAtCurrentStore={modalInventory}
+          inventoryAtCurrentStore={modalInventoryByStore[warehouseId] ?? modalInventory}
+          inventoryByStore={modalInventoryByStore}
           userRole="warehouse_manager"
         />
       </div>

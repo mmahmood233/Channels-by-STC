@@ -10,7 +10,7 @@ import { NewSaleModal } from "@/features/sales/NewSaleModal";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { TRANSFER_STATUS_CONFIG, ALERT_SEVERITY_CONFIG } from "@/constants";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { cn } from "@/utils/cn";
 
 interface Props {
@@ -20,13 +20,13 @@ interface Props {
   userName: string;
 }
 
-export async function StoreManagerDashboard({ userId, storeId, storeName, userName }: Props) {
+export async function StoreManagerDashboard({ storeId, storeName, userName }: Props) {
   const supabase = await createServerSupabaseClient();
+  const serviceClient = await createServiceRoleClient();
 
   const now = new Date();
   const todayISO     = now.toISOString().split("T")[0];
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-  const startOfWeek  = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const startLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
   const endLastMonth   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
 
@@ -41,6 +41,7 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
     { data: stockAlerts },
     { data: myTransfers },
     { data: topDevices },
+    { data: inventoryForSale },
     { data: inventoryForModal },
     { data: allStores },
     { data: devicesForSale },
@@ -87,14 +88,18 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
       .gte("sale_month", startOfMonth)
       .order("total_units_sold", { ascending: false })
       .limit(5),
-    // Inventory for transfer modal
+    // Store inventory for sale modal
     supabase.from("current_inventory_view")
+      .select("device_id, quantity")
+      .eq("store_id", storeId),
+    // Warehouse inventory for restock transfer requests
+    serviceClient.from("current_inventory_view")
       .select("device_id, device_name, brand, sku, quantity")
-      .eq("store_id", storeId)
+      .eq("is_warehouse", true)
       .gt("quantity", 0)
       .order("device_name"),
     // All stores for transfer modal
-    supabase.from("stores").select("id, name, is_warehouse").eq("status", "active").order("name"),
+    serviceClient.from("stores").select("id, name, is_warehouse").eq("status", "active").order("name"),
     // Active devices for sale modal
     supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name"),
   ]);
@@ -118,12 +123,16 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
     quantity: r.quantity as number,
   }));
 
+  const saleStockMap = Object.fromEntries(
+    (inventoryForSale ?? []).map((r) => [r.device_id as string, r.quantity as number])
+  );
   const modalDevices = (devicesForSale ?? []).map((d) => ({
     id: d.id as string,
     name: d.name as string,
     brand: d.brand as string,
     sku: d.sku as string,
     unit_price: Number(d.unit_price),
+    stock: saleStockMap[d.id as string] ?? 0,
   }));
 
   const modalStores = (allStores ?? []).map((s) => ({
@@ -145,7 +154,7 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
           </p>
         </div>
         <div className="flex gap-3">
-          <NewSaleModal storeId={storeId} devices={modalDevices} />
+          <NewSaleModal storeId={storeId} storeName={storeName} devices={modalDevices} />
           <NewTransferModal
             currentStoreId={storeId}
             allStores={modalStores}
@@ -319,7 +328,7 @@ export async function StoreManagerDashboard({ userId, storeId, storeName, userNa
             <div className="divide-y divide-surface-50">
               {myTransfers.map((t) => {
                 const cfg = TRANSFER_STATUS_CONFIG[t.status as keyof typeof TRANSFER_STATUS_CONFIG];
-                const variant = t.status === "completed" ? "success" : t.status === "cancelled" ? "danger"
+                const variant = t.status === "completed" ? "success" : t.status === "cancelled" || t.status === "rejected" ? "danger"
                   : t.status === "pending" ? "warning" : "info";
                 const from = (t.from_store as unknown as { name: string } | null)?.name;
                 const to = (t.to_store as unknown as { name: string } | null)?.name;

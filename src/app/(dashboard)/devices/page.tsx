@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { PrintButton } from "@/components/ui/PrintButton";
+import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { DeviceModal } from "@/features/devices/DeviceModal";
 import { DevicesTable } from "@/features/devices/DevicesTable";
 import { cn } from "@/utils/cn";
@@ -62,7 +63,23 @@ export default async function DevicesPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-surface-500">{deviceList.length} devices</p>
         <div className="flex items-center gap-2 no-print">
-          <PrintButton />
+          {deviceList.length > 0 && <PrintButton />}
+          {deviceList.length > 0 && (
+            <ExportCsvButton
+              filename="devices-report.csv"
+              headers={["SKU", "Device", "Brand", "Category", "Selling Price", "Cost Price", "Min Stock", "Status"]}
+              rows={deviceList.map((device) => [
+                device.sku,
+                device.name,
+                device.brand,
+                device.category_name ?? "",
+                device.unit_price.toFixed(3),
+                device.cost_price?.toFixed(3) ?? "",
+                device.low_stock_threshold,
+                device.status,
+              ])}
+            />
+          )}
           {isAdmin && <DeviceModal categories={categoryList} />}
         </div>
       </div>

@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Smartphone,
+  Tags,
+  Building2,
   Package,
   ShoppingCart,
   ArrowLeftRight,
@@ -34,6 +36,8 @@ import { useRouter } from "next/navigation";
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   Smartphone,
+  Tags,
+  Building2,
   Package,
   ShoppingCart,
   ArrowLeftRight,
@@ -50,7 +54,6 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 interface SidebarProps {
   userRole: UserRole;
   userName: string;
-  userEmail: string;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
@@ -58,7 +61,6 @@ interface SidebarProps {
 export function Sidebar({
   userRole,
   userName,
-  userEmail,
   mobileOpen,
   onMobileClose,
 }: SidebarProps) {

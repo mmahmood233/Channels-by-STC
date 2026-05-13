@@ -13,18 +13,27 @@ interface Device {
   sku: string;
   unit_price: number;
   stock: number;
+  stockByStore?: Record<string, number>;
+}
+
+interface SaleStore {
+  id: string;
+  name: string;
 }
 
 interface NewSaleModalProps {
   storeId: string;
+  storeName: string;
   devices: Device[];
+  stores?: SaleStore[];
 }
 
-export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
+export function NewSaleModal({ storeId, storeName, devices, stores = [] }: NewSaleModalProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedStoreId, setSelectedStoreId] = useState(storeId);
 
   const [saleDate, setSaleDate] = useState(() =>
     new Date().toISOString().split("T")[0]
@@ -33,6 +42,25 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
   const [items, setItems] = useState<
     { device_id: string; quantity: number; unit_price: number }[]
   >([{ device_id: "", quantity: 1, unit_price: 0 }]);
+
+  const storeOptions = stores.length > 0 ? stores : [{ id: storeId, name: storeName }];
+  const selectedStoreName =
+    storeOptions.find((store) => store.id === selectedStoreId)?.name ?? storeName;
+  const currentDevices = devices.map((device) => ({
+    ...device,
+    stock: device.stockByStore?.[selectedStoreId] ?? device.stock,
+  }));
+
+  function openModal() {
+    setSelectedStoreId(storeId);
+    setOpen(true);
+  }
+
+  function changeStore(nextStoreId: string) {
+    setSelectedStoreId(nextStoreId);
+    setItems([{ device_id: "", quantity: 1, unit_price: 0 }]);
+    setError(null);
+  }
 
   function addItem() {
     setItems((prev) => [...prev, { device_id: "", quantity: 1, unit_price: 0 }]);
@@ -51,7 +79,7 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
       prev.map((item, i) => {
         if (i !== idx) return item;
         if (field === "device_id") {
-          const dev = devices.find((d) => d.id === val);
+          const dev = currentDevices.find((d) => d.id === val);
           return {
             ...item,
             device_id: String(val),
@@ -60,7 +88,7 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
           };
         }
         if (field === "quantity") {
-          const dev = devices.find((d) => d.id === item.device_id);
+          const dev = currentDevices.find((d) => d.id === item.device_id);
           if (dev) {
             const usedInOtherRows = prev
               .filter((r, j) => j !== idx && r.device_id === item.device_id)
@@ -85,7 +113,7 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
     setError(null);
     startTransition(async () => {
       const result = await createSale({
-        store_id: storeId,
+        store_id: selectedStoreId,
         sale_date: saleDate,
         notes,
         items: validItems,
@@ -109,7 +137,7 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
     <>
       {/* Trigger */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         className="flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-800"
       >
         <Plus className="h-4 w-4" />
@@ -132,7 +160,10 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50">
                   <ShoppingCart className="h-5 w-5 text-brand-700" />
                 </div>
-                <h2 className="font-semibold text-surface-900">Record Sale</h2>
+                <div>
+                  <h2 className="font-semibold text-surface-900">Record Sale</h2>
+                  <p className="text-xs text-surface-500">{selectedStoreName}</p>
+                </div>
               </div>
               <button
                 onClick={() => !pending && setOpen(false)}
@@ -146,6 +177,23 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
             <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-5">
               {/* Date + Notes */}
               <div className="grid grid-cols-2 gap-4">
+                {storeOptions.length > 1 && (
+                  <div className="col-span-2">
+                    <label className="label">Store</label>
+                    <select
+                      value={selectedStoreId}
+                      onChange={(e) => changeStore(e.target.value)}
+                      disabled={pending}
+                      className="input-field"
+                    >
+                      {storeOptions.map((store) => (
+                        <option key={store.id} value={store.id}>
+                          {store.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="label">Sale Date</label>
                   <input
@@ -183,7 +231,7 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
 
                 <div className="space-y-2">
                   {items.map((item, idx) => {
-                    const dev = devices.find((d) => d.id === item.device_id);
+                    const dev = currentDevices.find((d) => d.id === item.device_id);
                     const usedInOtherRows = items
                       .filter((r, j) => j !== idx && r.device_id === item.device_id)
                       .reduce((s, r) => s + r.quantity, 0);
@@ -204,7 +252,7 @@ export function NewSaleModal({ storeId, devices }: NewSaleModalProps) {
                             className="input-field"
                           >
                             <option value="">— Select device —</option>
-                            {devices.map((d) => {
+                            {currentDevices.map((d) => {
                               const usedElsewhere = items
                                 .filter((r, j) => j !== idx && r.device_id === d.id)
                                 .reduce((s, r) => s + r.quantity, 0);

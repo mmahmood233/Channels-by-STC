@@ -18,6 +18,7 @@ import sys
 import os
 import argparse
 from datetime import datetime
+from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -45,7 +46,7 @@ def get_date_range(lookback_months: int):
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
-def run_forecast(store_filter: str | None = None, lookback: int = LOOKBACK_MONTHS):
+def run_forecast(store_filter: Optional[str] = None, lookback: int = LOOKBACK_MONTHS):
     client = get_supabase_client()
     start_at = datetime.now()
 
@@ -103,7 +104,7 @@ def run_forecast(store_filter: str | None = None, lookback: int = LOOKBACK_MONTH
         try:
             X, y = prepare_features(group_sorted)
             prediction, confidence_pct = predict_next_month(X, y)
-            confidence_score = round(confidence_pct / 100, 4)
+            confidence_score = round(confidence_pct, 2)
         except Exception as e:
             log(f"  ⚠  Skipping device={device_id} store={store_id}: {e}")
             skipped += 1
@@ -144,7 +145,7 @@ def run_forecast(store_filter: str | None = None, lookback: int = LOOKBACK_MONTH
             "store_id": None,
             "forecast_period": forecast_period,
             "predicted_quantity": int(prediction),
-            "confidence_score": round(confidence_pct / 100, 4),
+            "confidence_score": round(confidence_pct, 2),
             "model_version": MODEL_VERSION,
             "notes": f"Global aggregate — {len(agg)} months",
         })
@@ -155,8 +156,8 @@ def run_forecast(store_filter: str | None = None, lookback: int = LOOKBACK_MONTH
         _log_run(client, "forecast", "no_data", total_groups, 0, start_at, {"skipped": skipped})
         return
 
-    # ── 5. Upsert into forecasts table ────────────────────────────────────────
-    log(f"Upserting {len(upserts)} forecast rows ({global_upserts_count} global)…")
+    # ── 5. Replace rows in forecasts table ────────────────────────────────────
+    log(f"Writing {len(upserts)} forecast rows ({global_upserts_count} global)…")
 
     # Batch in chunks of 200 to stay within request limits
     BATCH = 200
@@ -166,16 +167,22 @@ def run_forecast(store_filter: str | None = None, lookback: int = LOOKBACK_MONTH
     for i in range(0, len(upserts), BATCH):
         chunk = upserts[i : i + BATCH]
         try:
-            resp = (
-                client.from_("forecasts")
-                .upsert(
-                    chunk,
-                    on_conflict="device_id,store_id,forecast_period"
-                    if any(r["store_id"] is not None for r in chunk)
-                    else "device_id,forecast_period",
+            for row in chunk:
+                delete_query = (
+                    client.from_("forecasts")
+                    .delete()
+                    .eq("device_id", row["device_id"])
+                    .eq("forecast_period", row["forecast_period"])
                 )
-                .execute()
-            )
+
+                if row["store_id"] is None:
+                    delete_query = delete_query.is_("store_id", "null")
+                else:
+                    delete_query = delete_query.eq("store_id", row["store_id"])
+
+                delete_query.execute()
+
+            client.from_("forecasts").insert(chunk).execute()
             total_written += len(chunk)
         except Exception as e:
             errors.append(str(e))

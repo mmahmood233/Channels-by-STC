@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import {
   Sparkles, RefreshCw, ArrowLeftRight, AlertTriangle,
-  CheckCircle2, Loader2, TrendingDown, Package,
+  CheckCircle2, Loader2, Package,
 } from "lucide-react";
 import { createTransfer } from "@/app/actions/transfers-create";
 import { cn } from "@/utils/cn";
