@@ -6,6 +6,7 @@ import {
   ShoppingCart, UserPlus, TrendingDown, PackageX, PackageMinus,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useRouter } from "next/navigation";
 import { cn } from "@/utils/cn";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ function NotifIcon({ type }: { type: NotifType }) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function NotificationCenter({ userId, storeId, userRole, initialCount }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -362,6 +364,29 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }
 
+  function getNotificationHref(type: NotifType) {
+    const routes: Record<NotifType, string> = {
+      out_of_stock: "/alerts",
+      low_stock: "/alerts",
+      alert: "/alerts",
+      forecast_warning: "/forecasts",
+      transfer_requested: "/transfers",
+      transfer_updated: "/transfers",
+      sale_recorded: "/sales",
+      user_created: "/users",
+    };
+
+    return routes[type];
+  }
+
+  function openNotification(notification: Notification) {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+    );
+    setOpen(false);
+    router.push(getNotificationHref(notification.type));
+  }
+
   function formatRelative(date: Date) {
     const diff = Math.floor((nowMs - date.getTime()) / 1000);
     if (diff < 60) return "just now";
@@ -429,8 +454,17 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
               notifications.map((n) => (
                 <div
                   key={n.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openNotification(n)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openNotification(n);
+                    }
+                  }}
                   className={cn(
-                    "group flex gap-3 px-4 py-3 transition-colors hover:bg-surface-50",
+                    "group flex cursor-pointer gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-200",
                     !n.read && n.urgent && "bg-red-50/50",
                     !n.read && !n.urgent && "bg-brand-50/30",
                   )}
@@ -446,8 +480,12 @@ export function NotificationCenter({ userId, storeId, userRole, initialCount }: 
                         {n.title}
                       </p>
                       <button
-                        onClick={() => dismiss(n.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          dismiss(n.id);
+                        }}
                         className="shrink-0 text-surface-300 opacity-0 transition-opacity hover:text-surface-500 group-hover:opacity-100"
+                        aria-label="Dismiss notification"
                       >
                         <X className="h-3 w-3" />
                       </button>

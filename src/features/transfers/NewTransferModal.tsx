@@ -21,23 +21,31 @@ interface Device {
 
 interface NewTransferModalProps {
   currentStoreId: string;
-  allStores: Store[];
-  inventoryAtCurrentStore: Device[];
+  allStores?: Store[];
+  inventoryAtCurrentStore?: Device[];
   inventoryByStore?: Record<string, Device[]>;
   userRole: string;
 }
 
 export function NewTransferModal({
   currentStoreId,
-  allStores,
-  inventoryAtCurrentStore,
-  inventoryByStore,
+  allStores: initialStores = [],
+  inventoryAtCurrentStore: initialInventory = [],
+  inventoryByStore: initialInventoryByStore,
   userRole,
 }: NewTransferModalProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [loadingData, setLoadingData] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allStores, setAllStores] = useState<Store[]>(initialStores);
+  const [inventoryByStore, setInventoryByStore] = useState<Record<string, Device[]>>(
+    initialInventoryByStore ?? {}
+  );
+  const [inventoryAtCurrentStore, setInventoryAtCurrentStore] = useState<Device[]>(
+    initialInventory
+  );
 
   const otherStores = allStores.filter((s) => s.id !== currentStoreId);
   const sourceOptions = allStores.some((s) => s.is_warehouse)
@@ -59,6 +67,36 @@ export function NewTransferModal({
   ]);
   const currentSourceInventory = inventoryByStore?.[sourceId] ?? inventoryAtCurrentStore;
 
+  async function loadModalData() {
+    if (allStores.length > 0 && Object.keys(inventoryByStore).length > 0) return;
+
+    setLoadingData(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/transfers/modal-data");
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error ?? "Failed to load transfer data");
+
+      const nextStores = data.stores ?? [];
+      const nextInventoryByStore = data.inventoryByStore ?? {};
+      const nextSourceId = data.defaultSourceId ?? defaultSourceId;
+
+      setAllStores(nextStores);
+      setInventoryByStore(nextInventoryByStore);
+      setInventoryAtCurrentStore(nextInventoryByStore[nextSourceId] ?? []);
+      setSourceId(nextSourceId);
+      setDestId(
+        userRole === "admin" || userRole === "warehouse_manager"
+          ? nextStores.find((store: Store) => store.id !== nextSourceId)?.id ?? ""
+          : data.currentStoreId ?? currentStoreId
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load transfer data");
+    } finally {
+      setLoadingData(false);
+    }
+  }
+
   function openModal() {
     setSourceId(defaultSourceId);
     setDestId(defaultDestinationId);
@@ -66,6 +104,7 @@ export function NewTransferModal({
     setNotes("");
     setError(null);
     setOpen(true);
+    void loadModalData();
   }
 
   function changeSource(nextSourceId: string) {
@@ -251,6 +290,7 @@ export function NewTransferModal({
                   <label className="label mb-0">Devices to Transfer</label>
                   <button
                     onClick={addItem}
+                    disabled={loadingData || currentSourceInventory.length === 0}
                     className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -259,7 +299,11 @@ export function NewTransferModal({
                 </div>
 
                 <div className="space-y-2">
-                  {items.map((item, idx) => {
+                  {loadingData ? (
+                    <div className="rounded-xl border border-surface-100 bg-surface-50 px-4 py-6 text-center text-sm text-surface-500">
+                      Loading source inventory...
+                    </div>
+                  ) : items.map((item, idx) => {
                     const dev = currentSourceInventory.find(
                       (d) => d.id === item.device_id
                     );
@@ -343,7 +387,7 @@ export function NewTransferModal({
               </button>
               <button
                 onClick={submit}
-                disabled={pending || done}
+                disabled={pending || done || loadingData}
                 className={cn(
                   "flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60",
                   done ? "bg-green-600" : "bg-brand-700 hover:bg-brand-800"

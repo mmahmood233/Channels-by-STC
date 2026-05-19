@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Sparkles, RefreshCw, ArrowLeftRight, AlertTriangle,
   CheckCircle2, Loader2, Package,
@@ -111,6 +111,46 @@ const LOADING_STEPS = [
   { label: "Running AI analysis…",         duration: 99999 }, // stays until done
 ];
 
+const RESTOCK_CACHE_KEY = "channels:ai-restock:suggestions:v1";
+const RESTOCK_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type RestockCache = {
+  suggestions: RestockSuggestion[];
+  generatedAt: string | null;
+  cachedAt: number;
+};
+
+function readCachedSuggestions() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(RESTOCK_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as RestockCache;
+    if (Date.now() - cached.cachedAt > RESTOCK_CACHE_TTL_MS) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedSuggestions(nextSuggestions: RestockSuggestion[], nextGeneratedAt: string | null) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.setItem(
+      RESTOCK_CACHE_KEY,
+      JSON.stringify({
+        suggestions: nextSuggestions,
+        generatedAt: nextGeneratedAt,
+        cachedAt: Date.now(),
+      } satisfies RestockCache)
+    );
+  } catch {
+    // Ignore browser storage failures.
+  }
+}
+
 export function RestockSuggestions() {
   const [suggestions, setSuggestions] = useState<RestockSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +161,16 @@ export function RestockSuggestions() {
   const [transferringIds, setTransferringIds] = useState<Set<string>>(new Set());
   const [transferErrors, setTransferErrors] = useState<Record<string, string>>({});
 
-  async function fetchSuggestions() {
+  const fetchSuggestions = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+    const cached = !force ? readCachedSuggestions() : null;
+    if (cached) {
+      setSuggestions(cached.suggestions);
+      setGeneratedAt(cached.generatedAt);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setLoadingStep(0);
     setError(null);
@@ -138,17 +187,20 @@ export function RestockSuggestions() {
       const res = await fetch("/api/restock");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setSuggestions(data.suggestions ?? []);
-      setGeneratedAt(data.generatedAt);
+      const nextSuggestions = data.suggestions ?? [];
+      const nextGeneratedAt = data.generatedAt ?? null;
+      setSuggestions(nextSuggestions);
+      setGeneratedAt(nextGeneratedAt);
+      writeCachedSuggestions(nextSuggestions, nextGeneratedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate suggestions");
     } finally {
       timers.forEach(clearTimeout);
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { fetchSuggestions(); }, []);
+  useEffect(() => { void fetchSuggestions(); }, [fetchSuggestions]);
 
   async function handleTransfer(s: RestockSuggestion) {
     const key = `${s.deviceId}-${s.storeId}`;
@@ -192,7 +244,7 @@ export function RestockSuggestions() {
           </div>
         </div>
         <button
-          onClick={fetchSuggestions}
+          onClick={() => fetchSuggestions({ force: true })}
           disabled={loading}
           className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-600 shadow-sm hover:bg-surface-50 disabled:opacity-50"
         >
@@ -252,7 +304,7 @@ export function RestockSuggestions() {
         <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center">
           <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-red-400" />
           <p className="font-medium text-red-700">{error}</p>
-          <button onClick={fetchSuggestions} className="mt-4 text-sm text-red-600 underline">Try again</button>
+          <button onClick={() => fetchSuggestions()} className="mt-4 text-sm text-red-600 underline">Try again</button>
         </div>
       ) : suggestions.length === 0 ? (
         <div className="rounded-2xl border border-green-100 bg-green-50 p-12 text-center">
@@ -262,18 +314,19 @@ export function RestockSuggestions() {
         </div>
       ) : (
         <div className="space-y-3">
-          {suggestions.map((s) => {
-            const key = `${s.deviceId}-${s.storeId}`;
+          {suggestions.map((s, index) => {
+            const actionKey = `${s.deviceId}-${s.storeId}`;
+            const key = `${actionKey}-${index}`;
             return (
               <div key={key}>
                 <SuggestionCard
                   s={s}
                   onTransfer={() => handleTransfer(s)}
-                  done={doneIds.has(key)}
-                  loading={transferringIds.has(key)}
+                  done={doneIds.has(actionKey)}
+                  loading={transferringIds.has(actionKey)}
                 />
-                {transferErrors[key] && (
-                  <p className="mt-1 px-2 text-xs text-red-600">{transferErrors[key]}</p>
+                {transferErrors[actionKey] && (
+                  <p className="mt-1 px-2 text-xs text-red-600">{transferErrors[actionKey]}</p>
                 )}
               </div>
             );

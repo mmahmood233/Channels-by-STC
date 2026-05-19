@@ -1,18 +1,8 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireWarehouseOrAdminProfile } from "@/lib/auth/current-user";
 import { StockAdjustmentForm } from "@/features/inventory/StockAdjustmentForm";
 
 export default async function StockAdjustmentPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles").select("role, store_id").eq("id", user.id).single();
-
-  if (profile?.role !== "admin" && profile?.role !== "warehouse_manager") {
-    redirect("/inventory");
-  }
+  const { supabase, profile } = await requireWarehouseOrAdminProfile();
 
   const [{ data: stores }, { data: devices }] = await Promise.all([
     supabase.from("stores").select("id, name, is_warehouse").eq("status", "active").order("name"),

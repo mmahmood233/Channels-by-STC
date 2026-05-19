@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdminProfile } from "@/lib/auth/current-user";
 import { CreateUserModal } from "@/features/users/CreateUserModal";
 import { UsersTable } from "@/features/users/UsersTable";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
@@ -12,17 +11,7 @@ export default async function UsersPage({
 }: {
   searchParams: Promise<{ role?: string; status?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: me } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (me?.role !== "admin") redirect("/dashboard");
+  const { supabase, user } = await requireAdminProfile();
 
   const params = await searchParams;
 

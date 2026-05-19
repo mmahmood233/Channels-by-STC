@@ -23,6 +23,109 @@ export interface RestockSuggestion {
   warehouseStoreId: string;
 }
 
+type LowStockRow = {
+  device_id: string;
+  device_name: string;
+  brand: string;
+  sku: string;
+  store_id: string;
+  store_name: string;
+  quantity: number;
+  low_stock_threshold: number;
+  stock_status: string;
+};
+
+type ForecastRow = {
+  device_id: string;
+  device_name: string;
+  store_id: string | null;
+  store_name: string | null;
+  predicted_quantity: number;
+  current_stock: number;
+  stock_gap: number;
+  risk_level: string;
+};
+
+type TopSellingRow = {
+  device_id: string;
+  store_id: string;
+  total_units_sold: number;
+};
+
+function urgencyRank(urgency: RestockSuggestion["urgency"]) {
+  return urgency === "critical" ? 0 : urgency === "high" ? 1 : 2;
+}
+
+function buildFallbackSuggestions(params: {
+  lowStock: LowStockRow[];
+  forecasts: ForecastRow[];
+  topSelling: TopSellingRow[];
+  warehouseStock: Map<string, number>;
+  warehouseStoreId: string;
+}) {
+  const forecastByTarget = new Map(
+    params.forecasts
+      .filter((forecast) => forecast.store_id)
+      .map((forecast) => [`${forecast.device_id}-${forecast.store_id}`, forecast])
+  );
+  const monthlySalesByTarget = new Map(
+    params.topSelling.map((row) => [`${row.device_id}-${row.store_id}`, Number(row.total_units_sold)])
+  );
+
+  const suggestions = new Map<string, RestockSuggestion>();
+
+  for (const row of params.lowStock) {
+    const availableAtWarehouse = params.warehouseStock.get(row.device_id) ?? 0;
+    if (availableAtWarehouse <= 0) continue;
+
+    const key = `${row.device_id}-${row.store_id}`;
+    const forecast = forecastByTarget.get(key);
+    const monthlySales = monthlySalesByTarget.get(key) ?? 0;
+    const predictedDemand = Math.max(
+      Number(forecast?.predicted_quantity ?? 0),
+      Number(row.low_stock_threshold ?? 0),
+      monthlySales > 0 ? Math.ceil(monthlySales / 2) : 0,
+      Number(row.quantity ?? 0) + 1
+    );
+    const shortage = Math.max(predictedDemand - Number(row.quantity), Number(row.low_stock_threshold) - Number(row.quantity), 1);
+    const urgency: RestockSuggestion["urgency"] =
+      row.stock_status === "out_of_stock" || Number(row.quantity) === 0
+        ? "critical"
+        : forecast?.risk_level === "shortage_expected"
+          ? "critical"
+          : forecast?.risk_level === "at_risk" || Number(row.quantity) <= Number(row.low_stock_threshold)
+            ? "high"
+            : "medium";
+    const suggestedQty = Math.min(Math.max(Math.ceil(shortage), 1), availableAtWarehouse, urgency === "critical" ? 50 : 20);
+
+    if (suggestedQty <= 0) continue;
+
+    suggestions.set(key, {
+      deviceId: row.device_id,
+      deviceName: row.device_name,
+      brand: row.brand,
+      sku: row.sku,
+      storeId: row.store_id,
+      storeName: row.store_name,
+      currentStock: Number(row.quantity),
+      predictedDemand,
+      suggestedQty,
+      urgency,
+      reason:
+        row.stock_status === "out_of_stock"
+          ? `Out of stock at ${row.store_name}.`
+          : forecast
+            ? `${forecast.risk_level === "shortage_expected" ? "Shortage forecast" : "At-risk forecast"} and current stock is below threshold at ${row.store_name}.`
+            : `Low stock at ${row.store_name}, below threshold.`,
+      warehouseStoreId: params.warehouseStoreId,
+    });
+  }
+
+  return Array.from(suggestions.values())
+    .sort((a, b) => urgencyRank(a.urgency) - urgencyRank(b.urgency) || a.currentStock - b.currentStock)
+    .slice(0, 15);
+}
+
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
@@ -74,9 +177,17 @@ export async function GET() {
     ]);
 
     const warehouseStore = stores?.find(s => s.is_warehouse);
+    const warehouseId = warehouseStore?.id ?? "";
     const warehouseStock = new Map(
       (warehouseInventory ?? []).map((row) => [row.device_id as string, row.quantity as number])
     );
+    const fallbackSuggestions = buildFallbackSuggestions({
+      lowStock: (lowStock ?? []) as LowStockRow[],
+      forecasts: (forecasts ?? []) as ForecastRow[],
+      topSelling: (topSelling ?? []) as TopSellingRow[],
+      warehouseStock,
+      warehouseStoreId: warehouseId,
+    });
 
     // Build context for the AI — include real UUIDs so AI uses them directly
     const lowStockLines = (lowStock ?? []).map(r =>
@@ -121,25 +232,27 @@ Rules:
 
     const userMessage = `Current Low/Out of Stock Items:\n${lowStockLines || "None"}\n\nForecast Warnings:\n${forecastLines || "None"}\n\nTop Selling This Month:\n${topSellingLines || "None"}\n\nWarehouse store ID: ${warehouseStore?.id ?? "unknown"}`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      max_tokens: 2000,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-    });
-
-    const raw = completion.choices[0]?.message?.content ?? "{}";
     let suggestions: RestockSuggestion[] = [];
+    let source: "ai" | "database" = "ai";
 
     try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: 2000,
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? "{}";
       const parsed = JSON.parse(raw);
       // AI may return { suggestions: [...] } or just [...]
       suggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions ?? parsed.items ?? []);
-    } catch {
+    } catch (error) {
+      console.warn("[restock route] AI suggestion generation failed, using deterministic fallback:", error);
       suggestions = [];
     }
 
@@ -166,11 +279,32 @@ Rules:
         s.suggestedQty <= availableAtWarehouse;
     });
 
-    // Attach warehouseStoreId to each suggestion
-    const warehouseId = warehouseStore?.id ?? "";
-    suggestions = suggestions.map(s => ({ ...s, warehouseStoreId: warehouseId }));
+    // Attach warehouseStoreId to each suggestion and keep one suggestion per
+    // destination store/device pair so the UI does not show duplicate transfer cards.
+    const suggestionByTarget = new Map<string, RestockSuggestion>();
 
-    return NextResponse.json({ suggestions, generatedAt: new Date().toISOString() });
+    for (const suggestion of suggestions) {
+      const key = `${suggestion.deviceId}-${suggestion.storeId}`;
+      const normalized = { ...suggestion, warehouseStoreId: warehouseId };
+      const existing = suggestionByTarget.get(key);
+
+      if (!existing || normalized.suggestedQty > existing.suggestedQty) {
+        suggestionByTarget.set(key, normalized);
+      }
+    }
+
+    suggestions = Array.from(suggestionByTarget.values());
+
+    if (suggestions.length === 0 && fallbackSuggestions.length > 0) {
+      suggestions = fallbackSuggestions;
+      source = "database";
+    }
+
+    return NextResponse.json({
+      suggestions,
+      generatedAt: new Date().toISOString(),
+      source,
+    });
   } catch (err) {
     console.error("[restock route]", err);
     return NextResponse.json({ error: "Failed to generate suggestions" }, { status: 500 });

@@ -22,9 +22,10 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useState, useTransition } from "react";
 import { NAVIGATION_ITEMS } from "@/constants/navigation";
 import { ROLE_LABELS } from "@/constants";
 import type { UserRole } from "@/types";
@@ -68,15 +69,55 @@ export function Sidebar({
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [, startNavigation] = useTransition();
 
-  const filteredNav = NAVIGATION_ITEMS.filter((item) =>
-    item.roles.includes(userRole)
+  const filteredNav = useMemo(
+    () => NAVIGATION_ITEMS.filter((item) => item.roles.includes(userRole)),
+    [userRole]
   );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      filteredNav.forEach((item) => {
+        router.prefetch(item.href);
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [filteredNav, router]);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   async function handleSignOut() {
     setLoggingOut(true);
     await signOut();
     router.push("/login");
+  }
+
+  function handleNavigate(
+    event: MouseEvent<HTMLAnchorElement>,
+    href: string,
+    isActive: boolean
+  ) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    onMobileClose();
+
+    if (isActive) {
+      setPendingHref(null);
+      return;
+    }
+
+    setPendingHref(href);
+    startNavigation(() => {
+      router.push(href);
+    });
   }
 
   const sidebarContent = (
@@ -130,22 +171,31 @@ export function Sidebar({
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const isPending = pendingHref === item.href && !isActive;
 
             return (
               <li key={item.href}>
-                <Link
+                <a
                   href={item.href}
-                  onClick={onMobileClose}
+                  onClick={(event) => handleNavigate(event, item.href, isActive)}
+                  onPointerDown={() => {
+                    if (!isActive) setPendingHref(item.href);
+                  }}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  onFocus={() => router.prefetch(item.href)}
+                  aria-current={isActive ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                    isActive
+                    isActive || isPending
                       ? "bg-brand-50 text-brand-700 shadow-sm"
                       : "text-surface-600 hover:bg-surface-50 hover:text-surface-900",
                     collapsed && "justify-center px-2"
                   )}
                 >
-                  {Icon && (
+                  {isPending ? (
+                    <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand-600" />
+                  ) : Icon && (
                     <Icon
                       className={cn(
                         "h-5 w-5 shrink-0 transition-colors",
@@ -157,10 +207,10 @@ export function Sidebar({
                   )}
                   {!collapsed && <span className="truncate">{item.label}</span>}
                   {/* Active indicator bar */}
-                  {isActive && !collapsed && (
+                  {(isActive || isPending) && !collapsed && (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600" />
                   )}
-                </Link>
+                </a>
               </li>
             );
           })}

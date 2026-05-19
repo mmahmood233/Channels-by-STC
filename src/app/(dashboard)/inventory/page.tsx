@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { PrintButton } from "@/components/ui/PrintButton";
@@ -12,16 +12,7 @@ export default async function InventoryPage({
 }: {
   searchParams: Promise<{ store?: string; status?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, store_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) redirect("/login");
+  const { supabase, profile } = await getCurrentUserProfile();
 
   const params = await searchParams;
   const isAdmin = profile.role === "admin";
@@ -37,34 +28,6 @@ export default async function InventoryPage({
 
   const warehouseStoreId = stores.find((s) => s.is_warehouse)?.id ?? stores[0]?.id ?? "";
   const currentStoreId = (profile.store_id as string | null) ?? warehouseStoreId;
-  const modalSourceStoreId = profile.role === "store_manager" ? warehouseStoreId : currentStoreId;
-  let sourceInventoryQuery = serviceClient
-    .from("current_inventory_view")
-    .select("device_id, device_name, brand, sku, quantity, store_id")
-    .gt("quantity", 0)
-    .order("device_name");
-  if (profile.role === "store_manager") {
-    sourceInventoryQuery = sourceInventoryQuery.eq("store_id", modalSourceStoreId);
-  }
-  const { data: sourceInventory } = await sourceInventoryQuery;
-  const modalInventory = (sourceInventory ?? []).map((r) => ({
-    id: r.device_id as string, name: r.device_name as string, brand: r.brand as string,
-    sku: r.sku as string, quantity: r.quantity as number,
-  }));
-  const modalInventoryByStore: Record<string, typeof modalInventory> = {};
-  for (const row of sourceInventory ?? []) {
-    const storeId = row.store_id as string;
-    modalInventoryByStore[storeId] = [
-      ...(modalInventoryByStore[storeId] ?? []),
-      {
-        id: row.device_id as string,
-        name: row.device_name as string,
-        brand: row.brand as string,
-        sku: row.sku as string,
-        quantity: row.quantity as number,
-      },
-    ];
-  }
   const modalStores = stores.map((s) => ({
     id: s.id as string, name: s.name as string, is_warehouse: s.is_warehouse as boolean,
   }));
@@ -141,8 +104,6 @@ export default async function InventoryPage({
             <NewTransferModal
               currentStoreId={currentStoreId}
               allStores={modalStores}
-              inventoryAtCurrentStore={modalInventoryByStore[modalSourceStoreId] ?? modalInventory}
-              inventoryByStore={modalInventoryByStore}
               userRole={profile.role as string}
             />
           )}

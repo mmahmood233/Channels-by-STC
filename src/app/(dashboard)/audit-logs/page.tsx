@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdminProfile } from "@/lib/auth/current-user";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { ShieldCheck } from "lucide-react";
@@ -18,13 +17,7 @@ export default async function AuditLogsPage({
 }: {
   searchParams: Promise<{ action?: string; table?: string; user?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/dashboard");
+  const { supabase } = await requireAdminProfile();
 
   const params = await searchParams;
 

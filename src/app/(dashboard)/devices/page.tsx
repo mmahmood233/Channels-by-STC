@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { DeviceModal } from "@/features/devices/DeviceModal";
@@ -11,13 +10,7 @@ export default async function DevicesPage({
 }: {
   searchParams: Promise<{ brand?: string; status?: string; cat?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles").select("role").eq("id", user.id).single();
-  if (!profile) redirect("/login");
+  const { supabase, profile } = await getCurrentUserProfile();
 
   const isAdmin = profile.role === "admin";
   const params = await searchParams;

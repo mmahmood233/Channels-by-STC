@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -12,16 +11,7 @@ export default async function ForecastsPage({
 }: {
   searchParams: Promise<{ store?: string; risk?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, store_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) redirect("/login");
+  const { supabase, profile } = await getCurrentUserProfile();
 
   const params = await searchParams;
   const isAdmin = profile.role === "admin";
@@ -35,7 +25,7 @@ export default async function ForecastsPage({
 
   let query = supabase
     .from("forecast_vs_inventory_view")
-    .select("*")
+    .select("forecast_id, device_id, device_name, store_id, store_name, forecast_period, predicted_quantity, current_stock, stock_gap, risk_level, confidence_score, model_version")
     .order("stock_gap")
     .limit(200);
 

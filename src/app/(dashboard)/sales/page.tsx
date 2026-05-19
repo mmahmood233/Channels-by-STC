@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NewSaleModal } from "@/features/sales/NewSaleModal";
 import { VoidSaleButton } from "@/features/sales/VoidSaleButton";
@@ -14,16 +13,7 @@ export default async function SalesPage({
 }: {
   searchParams: Promise<{ store?: string; from?: string; to?: string; }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, store_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) redirect("/login");
+  const { supabase, profile } = await getCurrentUserProfile();
 
   const params = await searchParams;
   const isAdmin = profile.role === "admin";
@@ -36,7 +26,6 @@ export default async function SalesPage({
     .eq("status", "active")
     .order("name");
 
-  // Devices for the New Sale modal (store managers and admins can record sales)
   const canSell = !isWarehouse;
   const activeStores = stores ?? [];
   const selectedStore =
@@ -48,31 +37,6 @@ export default async function SalesPage({
   const saleStoreOptions = profile.store_id
     ? activeStores.filter((store) => store.id === profile.store_id)
     : activeStores;
-
-  const [{ data: devicesForModal }, { data: inventoryForModal }] = canSell && saleStoreId
-    ? await Promise.all([
-        supabase.from("devices").select("id, name, brand, sku, unit_price").eq("status", "active").order("brand").order("name"),
-        profile.store_id
-          ? supabase.from("current_inventory_view").select("device_id, quantity, store_id").eq("store_id", saleStoreId)
-          : supabase.from("current_inventory_view").select("device_id, quantity, store_id").in("store_id", saleStoreOptions.map((store) => store.id)),
-      ])
-    : [{ data: null }, { data: null }];
-
-  const stockByDeviceStore: Record<string, Record<string, number>> = {};
-  for (const row of inventoryForModal ?? []) {
-    const deviceId = row.device_id as string;
-    const storeId = row.store_id as string;
-    stockByDeviceStore[deviceId] = {
-      ...(stockByDeviceStore[deviceId] ?? {}),
-      [storeId]: row.quantity as number,
-    };
-  }
-  const modalDevices = (devicesForModal ?? []).map((d) => ({
-    id: d.id as string, name: d.name as string, brand: d.brand as string,
-    sku: d.sku as string, unit_price: Number(d.unit_price),
-    stock: stockByDeviceStore[d.id as string]?.[saleStoreId] ?? 0,
-    stockByStore: stockByDeviceStore[d.id as string] ?? {},
-  }));
 
   let query = supabase
     .from("sales")
@@ -143,7 +107,6 @@ export default async function SalesPage({
               id: store.id as string,
               name: store.name as string,
             }))}
-            devices={modalDevices}
           />
         )}
       </div>

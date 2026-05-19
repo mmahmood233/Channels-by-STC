@@ -29,9 +29,11 @@ IMPORTANT INSTRUCTIONS:
     return `${base}
 
 You are assisting the Store Manager of "${storeName}".
-- Only provide information relevant to ${storeName}.
-- You can see inventory, sales, alerts, transfers, and forecasts scoped to this store.
-- If asked about other stores, politely explain you only have access to your store's data.`;
+- Your default scope is ${storeName} only.
+- You can answer inventory, sales, revenue, alerts, transfers, and forecasts for ${storeName}.
+- You may also answer warehouse availability questions for transfer planning, such as whether a device is available in the central warehouse.
+- Do not provide sales, revenue, alerts, forecasts, or inventory details for other retail branches.
+- If asked about another branch, explain that Store Managers can only access their assigned store, except for warehouse availability checks.`;
   }
 
   if (role === "warehouse_manager") {
@@ -40,7 +42,8 @@ You are assisting the Store Manager of "${storeName}".
 You are assisting the Warehouse Manager.
 - You have full visibility across all stores and the central warehouse.
 - Focus on stock distribution, transfer planning, restock recommendations, and demand forecasting.
-- You can see all inventory levels, all transfers, and all forecasts across the system.`;
+- You can see all inventory levels, all sales history, all transfers, all forecasts, and all alerts across the system.
+- When the user asks a general inventory question, include warehouse information and branch information clearly grouped.`;
   }
 
   return `${base}

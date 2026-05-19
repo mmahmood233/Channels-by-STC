@@ -1,22 +1,11 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdminProfile } from "@/lib/auth/current-user";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StoreModal } from "@/features/stores/StoreModal";
 import { StoresTable } from "@/features/stores/StoresTable";
 
 export default async function StoresPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") redirect("/dashboard");
+  const { supabase } = await requireAdminProfile();
 
   const { data: stores } = await supabase
     .from("stores")

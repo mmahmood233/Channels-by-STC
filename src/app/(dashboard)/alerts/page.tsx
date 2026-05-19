@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Bell, AlertTriangle } from "lucide-react";
@@ -15,16 +14,7 @@ export default async function AlertsPage({
 }: {
   searchParams: Promise<{ status?: string; severity?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, store_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile) redirect("/login");
+  const { supabase, profile } = await getCurrentUserProfile();
 
   const params = await searchParams;
   const isAdmin = profile.role === "admin";
