@@ -1,3 +1,4 @@
+// File purpose: Prepares and sends protected monthly summary reports for administrators.
 // Monthly report cron job — triggered by Vercel Cron on the 1st of each month
 // Fetches last month's sales, top devices, and stock health, then emails
 // a formatted HTML report to all active admin accounts via Resend.
@@ -10,6 +11,7 @@ import { CURRENCY_SYMBOL } from "@/constants";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function formatBhd(amount: number) {
   return `${CURRENCY_SYMBOL} ${amount.toLocaleString("en-BH", {
     minimumFractionDigits: 3,
@@ -17,6 +19,7 @@ function formatBhd(amount: number) {
   })}`;
 }
 
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 async function logMonthlyReportFailure(errorMessage: string, details?: Record<string, unknown>) {
   try {
     const supabase = await createServiceRoleClient();
@@ -34,6 +37,7 @@ async function logMonthlyReportFailure(errorMessage: string, details?: Record<st
   }
 }
 
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 export async function GET(req: NextRequest) {
   // Verify cron secret — Vercel sends Authorization: Bearer <CRON_SECRET>
   const authHeader = req.headers.get("authorization");

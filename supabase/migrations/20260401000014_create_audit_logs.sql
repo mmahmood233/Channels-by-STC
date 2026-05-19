@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Audit Logs Table
 -- Description: Records significant actions for accountability and traceability.

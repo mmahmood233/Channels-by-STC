@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Auth Trigger and Inventory Safety Trigger
 -- Description:

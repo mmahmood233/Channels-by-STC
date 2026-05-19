@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains a reusable UI component used by multiple pages or features.
+
 import { Download } from "lucide-react";
 import { exportToCsv } from "@/utils/exportCsv";
 
@@ -10,6 +12,7 @@ interface ExportCsvButtonProps {
   label?: string;
 }
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function ExportCsvButton({ filename, headers, rows, label = "Export CSV" }: ExportCsvButtonProps) {
   return (
     <button

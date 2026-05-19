@@ -1,3 +1,4 @@
+// File purpose: Defines shared TypeScript types used across the app.
 // Re-export all database types
 export * from "./database";
 

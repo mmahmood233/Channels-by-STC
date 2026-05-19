@@ -1,8 +1,11 @@
 "use server";
 
+// File purpose: Contains the server action for creating application users and profiles.
+
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function createUser(data: {
   email: string;
   password: string;

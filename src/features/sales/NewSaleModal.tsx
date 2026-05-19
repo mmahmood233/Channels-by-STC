@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains sales UI for recording, viewing, or voiding sales.
+
 import { useState, useTransition } from "react";
 import { Plus, X, Trash2, ShoppingCart, Loader2, CheckCircle2 } from "lucide-react";
 import { createSale, type SaleLineItem } from "@/app/actions/sales";
@@ -28,6 +30,7 @@ interface NewSaleModalProps {
   stores?: SaleStore[];
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function NewSaleModal({
   storeId = "",
   storeName = "Selected store",
@@ -43,6 +46,7 @@ export function NewSaleModal({
   const [devices, setDevices] = useState<Device[]>(initialDevices);
   const [stores, setStores] = useState<SaleStore[]>(initialStores);
 
+  // Default sale date is today.
   const [saleDate, setSaleDate] = useState(() =>
     new Date().toISOString().split("T")[0]
   );
@@ -51,17 +55,26 @@ export function NewSaleModal({
     { device_id: string; quantity: number; unit_price: number }[]
   >([{ device_id: "", quantity: 1, unit_price: 0 }]);
 
+  // Stores can come from the page or from the modal-data API route.
   const storeOptions = stores.length > 0 ? stores : storeId ? [{ id: storeId, name: storeName }] : [];
+
+  // Show the selected store name in the modal header.
   const selectedStoreName =
     storeOptions.find((store) => store.id === selectedStoreId)?.name ?? storeName;
+
+  // Device stock changes when the user changes store.
+  // stockByStore contains quantity for each store-device pair.
   const currentDevices = devices.map((device) => ({
     ...device,
     stock: device.stockByStore?.[selectedStoreId] ?? device.stock,
   }));
 
   async function loadModalData() {
+    // If data is already loaded, do not fetch again.
     if (stores.length > 0 && devices.length > 0) return;
 
+    // Load devices, stores, and stock quantities only when the modal opens.
+    // This keeps the Sales page itself faster.
     setLoadingData(true);
     setError(null);
     try {
@@ -80,22 +93,26 @@ export function NewSaleModal({
   }
 
   function openModal() {
+    // Open modal and start loading dropdown data.
     setSelectedStoreId(storeId);
     setOpen(true);
     void loadModalData();
   }
 
   function changeStore(nextStoreId: string) {
+    // Reset selected items because stock quantities depend on the selected store.
     setSelectedStoreId(nextStoreId);
     setItems([{ device_id: "", quantity: 1, unit_price: 0 }]);
     setError(null);
   }
 
   function addItem() {
+    // Add another sale line item.
     setItems((prev) => [...prev, { device_id: "", quantity: 1, unit_price: 0 }]);
   }
 
   function removeItem(idx: number) {
+    // Remove one sale line item by index.
     setItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
@@ -104,10 +121,12 @@ export function NewSaleModal({
     field: keyof SaleLineItem,
     val: string | number
   ) {
+    // Update one field in one sale line item.
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== idx) return item;
         if (field === "device_id") {
+          // When a device changes, copy its unit price into the row.
           const dev = currentDevices.find((d) => d.id === val);
           return {
             ...item,
@@ -117,6 +136,8 @@ export function NewSaleModal({
           };
         }
         if (field === "quantity") {
+          // Quantity cannot exceed remaining stock.
+          // If the same device appears in other rows, subtract those quantities first.
           const dev = currentDevices.find((d) => d.id === item.device_id);
           if (dev) {
             const usedInOtherRows = prev
@@ -131,16 +152,21 @@ export function NewSaleModal({
     );
   }
 
+  // Only rows with a selected device and positive quantity are submitted.
   const validItems = items.filter((i) => i.device_id && i.quantity > 0);
+  // Total is calculated in the browser for display.
+  // The database function still calculates/validates final sale data.
   const total = validItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
 
   function submit() {
+    // Basic UI validation before calling the server action.
     if (!validItems.length) {
       setError("Add at least one item with a device selected.");
       return;
     }
     setError(null);
     startTransition(async () => {
+      // Server action calls create_sale_atomic in the database.
       const result = await createSale({
         store_id: selectedStoreId,
         sale_date: saleDate,

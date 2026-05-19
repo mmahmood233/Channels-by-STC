@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains store and warehouse location UI.
+
 import { useState, useTransition } from "react";
 import { Building2, Loader2, Pencil, Plus, X } from "lucide-react";
 import { createStore, updateStore } from "@/app/actions/stores";
@@ -21,6 +23,7 @@ interface Props {
   store?: StoreData;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function StoreModal({ store }: Props) {
   const isEdit = Boolean(store);
   const [open, setOpen] = useState(false);
@@ -160,6 +163,7 @@ export function StoreModal({ store }: Props) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>

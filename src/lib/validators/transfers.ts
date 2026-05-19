@@ -1,3 +1,4 @@
+// File purpose: Defines validation schemas for safe form and action input.
 import { z } from "zod";
 
 export const transferItemSchema = z.object({

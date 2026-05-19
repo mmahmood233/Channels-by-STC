@@ -1,3 +1,4 @@
+// File purpose: Defines generated or shared database TypeScript types.
 // This file will be replaced with auto-generated types from Supabase CLI.
 // Run: npx supabase gen types typescript --local > src/types/database.ts
 // For now, we define a minimal placeholder that avoids circular type references.

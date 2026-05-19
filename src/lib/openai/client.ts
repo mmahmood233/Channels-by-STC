@@ -1,3 +1,4 @@
+// File purpose: Creates the OpenAI client used by AI features.
 import OpenAI from "openai";
 
 // Server-side only — never import this in client components

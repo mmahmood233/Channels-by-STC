@@ -1,3 +1,4 @@
+// File purpose: Combines CSS class names safely for conditional styling.
 import { clsx, type ClassValue } from "clsx";
 
 /**

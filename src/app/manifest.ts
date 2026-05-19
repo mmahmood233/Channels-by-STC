@@ -1,5 +1,7 @@
+// File purpose: Defines basic browser app metadata such as name, icons, and theme colors.
 import type { MetadataRoute } from "next";
 
+// Supports the application by connecting UI, data, or shared business logic.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Channels by stc — Smart Inventory",

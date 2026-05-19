@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains category table, modal, and delete UI.
+
 import { useState, useTransition } from "react";
 import { Loader2, Pencil, Plus, Tags, X } from "lucide-react";
 import { createCategory, updateCategory } from "@/app/actions/categories";
@@ -11,6 +13,7 @@ interface CategoryData {
   description: string | null;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function CategoryModal({ category }: { category?: CategoryData }) {
   const isEdit = Boolean(category);
   const [open, setOpen] = useState(false);

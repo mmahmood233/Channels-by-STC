@@ -1,3 +1,4 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
@@ -5,6 +6,7 @@ import { DeviceModal } from "@/features/devices/DeviceModal";
 import { DevicesTable } from "@/features/devices/DevicesTable";
 import { cn } from "@/utils/cn";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function DevicesPage({
   searchParams,
 }: {
@@ -108,6 +110,7 @@ export default async function DevicesPage({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -117,6 +120,7 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
   return qs ? `${base}?${qs}` : base;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function FilterChip({ href, active, label }: { href: string; active: boolean; label: string }) {
   return (
     <a

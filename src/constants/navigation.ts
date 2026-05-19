@@ -1,3 +1,4 @@
+// File purpose: Defines dashboard navigation items and which roles can see them.
 // Sidebar navigation items — roles array controls who sees each link
 import type { NavItem } from "@/types";
 import { ROUTES } from "./index";

@@ -1,8 +1,11 @@
 "use server";
 
+// File purpose: Contains server actions for category management.
+
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 async function requireAdmin() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,6 +21,7 @@ async function requireAdmin() {
   return { supabase, error: null };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function createCategory(data: { name: string; description: string }) {
   const { supabase, error } = await requireAdmin();
   if (error || !supabase) return { error };
@@ -33,6 +37,7 @@ export async function createCategory(data: { name: string; description: string }
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateCategory(id: string, data: { name: string; description: string }) {
   const { supabase, error } = await requireAdmin();
   if (error || !supabase) return { error };
@@ -51,6 +56,7 @@ export async function updateCategory(id: string, data: { name: string; descripti
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function deleteCategory(id: string) {
   const { supabase, error } = await requireAdmin();
   if (error || !supabase) return { error };

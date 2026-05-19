@@ -1,3 +1,4 @@
+// File purpose: Defines the root application layout, global metadata, fonts, and providers.
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
   },
 };
 
+// Supports the application by connecting UI, data, or shared business logic.
 export default function RootLayout({
   children,
 }: {

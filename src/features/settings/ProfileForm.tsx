@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains settings and profile form UI.
+
 import { useState, useTransition } from "react";
 import { Save, Loader2, CheckCircle2 } from "lucide-react";
 import { updateOwnProfile } from "@/app/actions/settings";
@@ -11,6 +13,7 @@ interface ProfileFormProps {
   role: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function ProfileForm({ fullName, email, phone, role }: ProfileFormProps) {
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -98,6 +101,7 @@ export function ProfileForm({ fullName, email, phone, role }: ProfileFormProps) 
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>

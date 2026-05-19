@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains Admin user management UI.
+
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -33,6 +35,7 @@ const roleVariant: Record<UserRole, "purple" | "info" | "success"> = {
   warehouse_manager: "success",
 };
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function UsersTable({ users, currentUserId }: Props) {
   const [q, setQ] = useState("");
 
@@ -138,9 +141,11 @@ export function UsersTable({ users, currentUserId }: Props) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">{children}</th>;
 }
+// Renders this feature UI and connects user actions to server-side logic.
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 text-surface-700", className)}>{children}</td>;
 }

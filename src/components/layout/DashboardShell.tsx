@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Builds the main dashboard frame with sidebar, topbar, and page content area.
+
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -14,6 +16,7 @@ interface DashboardShellProps {
   storeId: string | null;
 }
 
+// Builds part of the shared dashboard layout used by protected pages.
 export function DashboardShell({
   children,
   userRole,

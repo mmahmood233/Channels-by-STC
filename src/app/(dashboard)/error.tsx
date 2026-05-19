@@ -1,8 +1,11 @@
 "use client";
 
+// File purpose: Shows a safe dashboard error screen when a page fails to load.
+
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
+// Supports the application by connecting UI, data, or shared business logic.
 export default function DashboardError({
   error,
   reset,

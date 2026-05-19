@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains device catalogue UI for listing, editing, and status changes.
+
 import { useTransition, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toggleDeviceStatus } from "@/app/actions/devices";
@@ -9,6 +11,7 @@ interface Props {
   currentStatus: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function DeviceStatusToggle({ deviceId, currentStatus }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

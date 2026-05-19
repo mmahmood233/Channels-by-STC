@@ -1,7 +1,9 @@
+// File purpose: Renders the login page and connects it to the login form.
 import { LoginForm } from "@/features/auth/login-form";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 
+// Renders an authentication page and connects it to the related auth form.
 export default function LoginPage() {
   return (
     <div className="animate-fade-in space-y-8">

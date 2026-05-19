@@ -1,4 +1,4 @@
-
+// File purpose: Provides the shared layout for authentication pages.
 import {
   BarChart3, Package, ArrowLeftRight,
   ShoppingCart, Bot, TrendingUp,
@@ -20,6 +20,7 @@ const STATS = [
   { value: "AI",   label: "Powered" },
 ];
 
+// Supports the application by connecting UI, data, or shared business logic.
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-surface-50">

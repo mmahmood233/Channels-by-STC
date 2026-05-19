@@ -1,3 +1,4 @@
+// File purpose: Seeds Supabase Auth users and connects them to profile records.
 /**
  * ============================================================================
  * Seed Users Script

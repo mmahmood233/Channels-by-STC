@@ -1,3 +1,4 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { AnalyticsCharts } from "@/features/analytics/AnalyticsCharts";
@@ -7,6 +8,7 @@ import { CURRENCY_SYMBOL } from "@/constants";
 import { formatCurrency } from "@/utils/format";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function AnalyticsPage({
   searchParams,
 }: {
@@ -183,6 +185,7 @@ export default async function AnalyticsPage({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function KpiCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-surface-100 bg-white px-5 py-4 shadow-soft">

@@ -1,6 +1,8 @@
+// File purpose: Renders the reset-password page and connects it to the password update form.
 import { ResetPasswordForm } from "@/features/auth/reset-password-form";
 import { KeyRound } from "lucide-react";
 
+// Renders an authentication page and connects it to the related auth form.
 export default function ResetPasswordPage() {
   return (
     <div className="animate-fade-in space-y-8">

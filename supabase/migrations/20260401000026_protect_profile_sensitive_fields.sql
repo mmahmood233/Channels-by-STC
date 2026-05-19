@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Protect Sensitive Profile Fields
 -- Description: Users may update their own display/contact fields, but only

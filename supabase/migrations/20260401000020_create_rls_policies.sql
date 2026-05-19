@@ -1,3 +1,4 @@
+-- File purpose: Creates Row Level Security policies for role-based database access.
 -- ============================================================================
 -- Migration: Enable RLS and Create Policies
 -- Description: Row Level Security policies for all tables.

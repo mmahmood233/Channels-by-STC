@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Settings Table
 -- Description: Key-value store for system-wide configuration and thresholds

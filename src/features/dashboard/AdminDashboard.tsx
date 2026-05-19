@@ -1,3 +1,4 @@
+// File purpose: Renders role-specific dashboard summaries, cards, and recent activity sections.
 import {
   Smartphone, Package, ShoppingCart, ArrowLeftRight,
   Bell, TrendingUp, AlertTriangle, CheckCircle2, Clock, DollarSign,
@@ -16,6 +17,7 @@ interface Props {
   userName: string;
 }
 
+// Renders role-specific dashboard metrics and recent operational activity.
 export async function AdminDashboard({ userName }: Props) {
   const supabase = await createServerSupabaseClient();
 
@@ -213,6 +215,7 @@ export async function AdminDashboard({ userName }: Props) {
   );
 }
 
+// Renders role-specific dashboard metrics and recent operational activity.
 function Panel({ title, icon, href, children }: { title: string; icon: React.ReactNode; href: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-surface-100 bg-white shadow-soft">
@@ -224,9 +227,11 @@ function Panel({ title, icon, href, children }: { title: string; icon: React.Rea
     </div>
   );
 }
+// Renders role-specific dashboard metrics and recent operational activity.
 function PanelRow({ children }: { children: React.ReactNode }) {
   return <div className="flex items-start gap-3 px-6 py-3">{children}</div>;
 }
+// Renders role-specific dashboard metrics and recent operational activity.
 function EmptyRow({ icon }: { icon?: "check" }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-10 text-center">

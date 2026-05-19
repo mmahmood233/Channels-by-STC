@@ -1,8 +1,17 @@
+// File purpose: Builds role-aware system prompts for chatbot and AI behavior.
 import type { UserRole } from "@/types";
 
+// This function builds the system message sent to OpenAI.
+// The system message tells the AI what the app is, what data it can use,
+// and what access rules it must follow for each role.
+// Supports AI features by preparing OpenAI clients or prompt instructions.
 export function buildSystemPrompt(role: UserRole, storeName?: string, today?: string): string {
+  // Include today's date when the route provides it.
+  // This helps the chatbot answer time-related questions more clearly.
   const dateLine = today ? `Today's date is ${today}.` : "";
 
+  // Base instructions shared by every role.
+  // These rules keep the chatbot grounded in system data instead of guessing.
   const base = `You are an intelligent business assistant for Channels by STC, a telecom retail company operating in Bahrain.
 ${dateLine}
 
@@ -25,6 +34,8 @@ IMPORTANT INSTRUCTIONS:
 - Format responses with bullet points or short paragraphs — avoid long walls of text.
 - If asked for recommendations (restock, transfers, etc.), base them on the inventory and forecast data provided.`;
 
+  // Store Managers are limited to their assigned store.
+  // The only exception is checking warehouse availability for transfer planning.
   if (role === "store_manager" && storeName) {
     return `${base}
 
@@ -36,6 +47,8 @@ You are assisting the Store Manager of "${storeName}".
 - If asked about another branch, explain that Store Managers can only access their assigned store, except for warehouse availability checks.`;
   }
 
+  // Warehouse Managers need system-wide stock visibility.
+  // Their answers should focus on stock movement, shortages, and replenishment.
   if (role === "warehouse_manager") {
     return `${base}
 
@@ -46,6 +59,7 @@ You are assisting the Warehouse Manager.
 - When the user asks a general inventory question, include warehouse information and branch information clearly grouped.`;
   }
 
+  // Admin has full system access.
   return `${base}
 
 You are assisting a System Admin with full access to all data.

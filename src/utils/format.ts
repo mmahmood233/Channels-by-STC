@@ -1,3 +1,4 @@
+// File purpose: Formats dates, numbers, currency, and display values.
 import { CURRENCY_SYMBOL } from "@/constants";
 
 /**

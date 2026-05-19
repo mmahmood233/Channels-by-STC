@@ -1,9 +1,11 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { AdminDashboard } from "@/features/dashboard/AdminDashboard";
 import { StoreManagerDashboard } from "@/features/dashboard/StoreManagerDashboard";
 import { WarehouseManagerDashboard } from "@/features/dashboard/WarehouseManagerDashboard";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

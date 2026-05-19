@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Fix current_inventory_view to exclude discontinued devices
 -- Description: Adds WHERE d.status = 'active' so that deactivating a device

@@ -1,10 +1,13 @@
 "use client";
 
+// File purpose: Contains authentication form UI and connects it to auth services.
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { signIn } from "@/services/auth";
 
+// Handles authentication form state and calls the auth service.
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");

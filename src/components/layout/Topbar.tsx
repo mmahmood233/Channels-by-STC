@@ -1,11 +1,14 @@
 "use client";
 
+// File purpose: Renders the dashboard topbar with search, theme toggle, and notifications.
+
 import { Menu, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
 import { NotificationCenter } from "@/features/notifications/NotificationCenter";
 import type { UserRole } from "@/types";
 
+// Builds part of the shared dashboard layout used by protected pages.
 function deriveTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard")) return "Dashboard";
   if (pathname.startsWith("/devices")) return "Devices";
@@ -33,6 +36,7 @@ interface TopbarProps {
   userRole: UserRole;
 }
 
+// Builds part of the shared dashboard layout used by protected pages.
 export function Topbar({ onMobileMenuOpen, alertCount = 0, userId, storeId, userRole }: TopbarProps) {
   const pathname = usePathname();
   const pageTitle = deriveTitle(pathname);

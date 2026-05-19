@@ -1,3 +1,4 @@
+-- File purpose: Creates database views used by dashboards, analytics, alerts, and forecasting.
 -- ============================================================================
 -- Migration: Create Views
 -- Description: SQL views for analytics, dashboards, and reporting.

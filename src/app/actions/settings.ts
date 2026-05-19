@@ -1,8 +1,11 @@
 "use server";
 
+// File purpose: Contains server actions for profile or system settings updates.
+
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateSetting(key: string, value: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,6 +28,7 @@ export async function updateSetting(key: string, value: string) {
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateOwnProfile(updates: {
   full_name?: string;
   phone?: string | null;

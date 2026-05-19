@@ -1,3 +1,4 @@
+// File purpose: Contains a reusable UI component used by multiple pages or features.
 import type { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
@@ -6,6 +7,7 @@ interface EmptyStateProps {
   description?: string;
 }
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-20 text-center">

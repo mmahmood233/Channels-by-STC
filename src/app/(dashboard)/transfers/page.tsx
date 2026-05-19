@@ -1,3 +1,4 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { Badge } from "@/components/ui/Badge";
@@ -11,6 +12,7 @@ import { TRANSFER_STATUS_CONFIG } from "@/constants";
 import { TransferActions } from "@/features/transfers/TransferActions";
 import { cn } from "@/utils/cn";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function TransfersPage({
   searchParams,
 }: {
@@ -206,6 +208,7 @@ export default async function TransfersPage({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -215,6 +218,7 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
   return qs ? `${base}?${qs}` : base;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function FilterChip({ href, active, label, count }: { href: string; active: boolean; label: string; count?: number }) {
   return (
     <a
@@ -239,6 +243,7 @@ function FilterChip({ href, active, label, count }: { href: string; active: bool
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">
@@ -247,6 +252,7 @@ function Th({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 text-surface-700", className)}>{children}</td>;
 }

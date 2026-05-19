@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains inventory UI for viewing stock and adjusting quantities.
+
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -28,6 +30,7 @@ interface Props {
   isWarehouse: boolean;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function InventoryTable({ rows, isAdmin, isWarehouse }: Props) {
   const [q, setQ] = useState("");
 
@@ -144,9 +147,11 @@ export function InventoryTable({ rows, isAdmin, isWarehouse }: Props) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">{children}</th>;
 }
+// Renders this feature UI and connects user actions to server-side logic.
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 text-surface-700", className)}>{children}</td>;
 }

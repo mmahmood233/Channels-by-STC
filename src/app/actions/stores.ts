@@ -1,8 +1,11 @@
 "use server";
 
+// File purpose: Contains server actions for store and warehouse location management.
+
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 async function requireAdmin() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,6 +21,7 @@ async function requireAdmin() {
   return { supabase, error: null };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function createStore(data: {
   name: string;
   code: string;
@@ -48,6 +52,7 @@ export async function createStore(data: {
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateStore(
   id: string,
   data: {
@@ -83,6 +88,7 @@ export async function updateStore(
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateStoreStatus(id: string, status: "active" | "inactive") {
   const { supabase, error } = await requireAdmin();
   if (error || !supabase) return { error };

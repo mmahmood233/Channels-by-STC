@@ -1,3 +1,4 @@
+-- File purpose: Creates shared database enum types used by tables and functions.
 -- ============================================================================
 -- Migration: Create Enums
 -- Description: All PostgreSQL enum types used across the database

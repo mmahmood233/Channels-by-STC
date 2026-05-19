@@ -1,7 +1,9 @@
+// File purpose: Renders the forgot-password page and connects it to the reset request form.
 import { ForgotPasswordForm } from "@/features/auth/forgot-password-form";
 import Link from "next/link";
 import { ArrowLeft, Mail } from "lucide-react";
 
+// Renders an authentication page and connects it to the related auth form.
 export default function ForgotPasswordPage() {
   return (
     <div className="animate-fade-in space-y-8">

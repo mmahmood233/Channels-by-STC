@@ -1,9 +1,11 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/features/settings/ProfileForm";
 import { ROLE_LABELS } from "@/constants";
 import type { UserRole } from "@/types";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function SettingsPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -94,6 +96,7 @@ export default async function SettingsPage() {
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function Section({
   title,
   description,
@@ -114,6 +117,7 @@ function Section({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="rounded-xl bg-surface-50 px-4 py-3">

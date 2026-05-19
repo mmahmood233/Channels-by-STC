@@ -1,3 +1,4 @@
+// File purpose: Contains a reusable UI component used by multiple pages or features.
 import { cn } from "@/utils/cn";
 
 type BadgeVariant =
@@ -23,6 +24,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   purple: "bg-brand-50 text-brand-700 border border-brand-100",
 };
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function Badge({ children, variant = "default", className }: BadgeProps) {
   return (
     <span

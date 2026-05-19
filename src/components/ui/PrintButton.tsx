@@ -1,7 +1,10 @@
 "use client";
 
+// File purpose: Contains a reusable UI component used by multiple pages or features.
+
 import { Printer } from "lucide-react";
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function PrintButton() {
   return (
     <button

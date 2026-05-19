@@ -1,9 +1,11 @@
+// File purpose: Converts table data into downloadable CSV output.
 /**
  * Triggers a CSV file download in the browser.
  * @param filename  e.g. "sales-report.csv"
  * @param headers   Column header labels
  * @param rows      2-D array of string values (one array per row)
  */
+// Provides a small reusable helper used across the application.
 export function exportToCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][]) {
   const escape = (v: string | number | null | undefined) => {
     const str = v == null ? "" : String(v);

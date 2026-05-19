@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains the chatbot interface used to ask operational questions.
+
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Bot, User, RotateCcw } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -18,6 +20,7 @@ const SUGGESTED_QUESTIONS = [
   "What are our active alerts?",
 ];
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
     {

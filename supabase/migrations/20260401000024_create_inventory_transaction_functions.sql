@@ -1,3 +1,4 @@
+-- File purpose: Creates atomic inventory transaction functions for sales, transfers, and stock changes.
 -- ============================================================================
 -- Migration: Inventory Transaction Functions
 -- Description: Keeps sale and transfer stock changes atomic and role checked.

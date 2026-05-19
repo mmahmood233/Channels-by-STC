@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Renders role-based dashboard navigation and handles page navigation feedback.
+
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -33,7 +35,9 @@ import { cn } from "@/utils/cn";
 import { signOut } from "@/services/auth";
 import { useRouter } from "next/navigation";
 
-// Icon map — maps string names from nav config to Lucide components
+// Icon map.
+// NAVIGATION_ITEMS stores icon names as strings.
+// This object converts those strings into real Lucide icon components.
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   Smartphone,
@@ -59,6 +63,7 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
+// Builds part of the shared dashboard layout used by protected pages.
 export function Sidebar({
   userRole,
   userName,
@@ -72,11 +77,15 @@ export function Sidebar({
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [, startNavigation] = useTransition();
 
+  // Filter the sidebar links by role.
+  // Example: Admin sees Users and Audit Logs, but Store Manager does not.
   const filteredNav = useMemo(
     () => NAVIGATION_ITEMS.filter((item) => item.roles.includes(userRole)),
     [userRole]
   );
 
+  // Warm up dashboard routes in the browser cache.
+  // This makes page navigation feel faster after the app loads.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       filteredNav.forEach((item) => {
@@ -87,10 +96,12 @@ export function Sidebar({
     return () => window.clearTimeout(timer);
   }, [filteredNav, router]);
 
+  // When the page changes, clear the temporary loading state in the sidebar.
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
 
+  // Sign out from Supabase, then send the user back to login.
   async function handleSignOut() {
     setLoggingOut(true);
     await signOut();
@@ -102,10 +113,12 @@ export function Sidebar({
     href: string,
     isActive: boolean
   ) {
+    // Allow browser shortcuts like command-click / ctrl-click to work normally.
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
       return;
     }
 
+    // We control the navigation so the clicked item can show feedback immediately.
     event.preventDefault();
     onMobileClose();
 
@@ -114,6 +127,7 @@ export function Sidebar({
       return;
     }
 
+    // Show a spinner on the clicked item while Next.js changes route.
     setPendingHref(href);
     startNavigation(() => {
       router.push(href);
@@ -168,6 +182,7 @@ export function Sidebar({
         <ul className="space-y-1">
           {filteredNav.map((item) => {
             const Icon = ICON_MAP[item.icon];
+            // Active means this link matches the current URL.
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));

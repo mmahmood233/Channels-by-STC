@@ -1,3 +1,4 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getCurrentUserProfile } from "@/lib/auth/current-user";
 import { NewTransferModal } from "@/features/transfers/NewTransferModal";
@@ -7,6 +8,7 @@ import { InventoryTable } from "@/features/inventory/InventoryTable";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/utils/cn";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function InventoryPage({
   searchParams,
 }: {
@@ -157,6 +159,7 @@ export default async function InventoryPage({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -166,6 +169,7 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
   return qs ? `${base}?${qs}` : base;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function FilterChip({ href, active, label }: { href: string; active: boolean; label: string }) {
   return (
     <a

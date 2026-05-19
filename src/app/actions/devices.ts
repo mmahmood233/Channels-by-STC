@@ -1,9 +1,12 @@
 "use server";
 
+// File purpose: Contains server actions for Admin device catalogue management.
+
 // Server actions for device management — admin only
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 async function requireAdmin() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -13,6 +16,7 @@ async function requireAdmin() {
   return { supabase, user, error: null };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function createDevice(data: {
   sku: string;
   name: string;
@@ -41,6 +45,7 @@ export async function createDevice(data: {
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateDevice(
   id: string,
   data: {
@@ -71,6 +76,7 @@ export async function updateDevice(
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function toggleDeviceStatus(id: string, currentStatus: string) {
   const { supabase, error } = await requireAdmin();
   if (error || !supabase) return { error };

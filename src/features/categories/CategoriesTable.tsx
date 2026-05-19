@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains category table, modal, and delete UI.
+
 import { useState } from "react";
 import { Search, Tags, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,6 +17,7 @@ interface CategoryRow {
   created_at: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function CategoriesTable({ categories }: { categories: CategoryRow[] }) {
   const [q, setQ] = useState("");
   const filtered = q.trim()
@@ -82,10 +85,12 @@ export function CategoriesTable({ categories }: { categories: CategoryRow[] }) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">{children}</th>;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 text-surface-700", className)}>{children}</td>;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains a provider that shares browser or theme behavior across the app.
+
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
@@ -9,10 +11,12 @@ const ThemeContext = createContext<{
   toggle: () => void;
 }>({ theme: "light", toggle: () => {} });
 
+// Supports the application by connecting UI, data, or shared business logic.
 export function useTheme() {
   return useContext(ThemeContext);
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 

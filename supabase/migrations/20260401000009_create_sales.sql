@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Sales and Sale Items Tables
 -- Description: Sales header + line items (normalized design).

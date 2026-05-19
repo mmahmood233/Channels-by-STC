@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Chatbot Logs Table
 -- Description: Logs every AI chatbot interaction for auditing, debugging,

@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains Admin user management UI.
+
 import { useState, useTransition } from "react";
 import { UserCheck, UserX, Loader2 } from "lucide-react";
 import { updateUserStatus } from "@/app/actions/users";
@@ -11,6 +13,7 @@ interface UserRowActionsProps {
   currentUserId: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function UserRowActions({ userId, currentStatus, currentUserId }: UserRowActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

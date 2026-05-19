@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains alert action UI for acknowledge, resolve, or dismiss workflows.
+
 import { useState, useTransition } from "react";
 import { Eye, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { acknowledgeAlert, resolveAlert, dismissAlert } from "@/app/actions/alerts";
@@ -11,6 +13,7 @@ interface AlertActionsProps {
   status: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function AlertActions({ alertId, status }: AlertActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +66,7 @@ export function AlertActions({ alertId, status }: AlertActionsProps) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Btn({
   onClick, pending, color, icon, label,
 }: {

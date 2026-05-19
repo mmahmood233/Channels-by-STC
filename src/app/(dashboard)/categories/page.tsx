@@ -1,9 +1,11 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { requireAdminProfile } from "@/lib/auth/current-user";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { CategoryModal } from "@/features/categories/CategoryModal";
 import { CategoriesTable } from "@/features/categories/CategoriesTable";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function CategoriesPage() {
   const { supabase } = await requireAdminProfile();
 
@@ -63,6 +65,7 @@ export default async function CategoriesPage() {
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-surface-100 bg-white px-5 py-4 shadow-soft">

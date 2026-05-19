@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains AI restock UI and connects suggestions to transfer requests.
+
 import { useCallback, useEffect, useState } from "react";
 import {
   Sparkles, RefreshCw, ArrowLeftRight, AlertTriangle,
@@ -15,6 +17,9 @@ const URGENCY_CONFIG = {
   medium:   { label: "Medium",    bg: "bg-blue-50",   border: "border-blue-200",  badge: "bg-blue-100 text-blue-700",   icon: "text-blue-500"  },
 };
 
+// One visual card for one restock suggestion.
+// The parent component passes the suggestion and transfer action into this card.
+// Renders this feature UI and connects user actions to server-side logic.
 function SuggestionCard({
   s,
   onTransfer,
@@ -26,6 +31,7 @@ function SuggestionCard({
   done: boolean;
   loading: boolean;
 }) {
+  // Choose colors and labels based on urgency.
   const cfg = URGENCY_CONFIG[s.urgency];
 
   return (
@@ -112,6 +118,7 @@ const LOADING_STEPS = [
 ];
 
 const RESTOCK_CACHE_KEY = "channels:ai-restock:suggestions:v1";
+// Cache suggestions for a short time so returning to the page feels faster.
 const RESTOCK_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type RestockCache = {
@@ -120,13 +127,16 @@ type RestockCache = {
   cachedAt: number;
 };
 
+// Renders this feature UI and connects user actions to server-side logic.
 function readCachedSuggestions() {
+  // sessionStorage only exists in the browser.
   if (typeof window === "undefined") return null;
 
   try {
     const raw = window.sessionStorage.getItem(RESTOCK_CACHE_KEY);
     if (!raw) return null;
     const cached = JSON.parse(raw) as RestockCache;
+    // Expired cache should not be used.
     if (Date.now() - cached.cachedAt > RESTOCK_CACHE_TTL_MS) return null;
     return cached;
   } catch {
@@ -134,6 +144,7 @@ function readCachedSuggestions() {
   }
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function writeCachedSuggestions(nextSuggestions: RestockSuggestion[], nextGeneratedAt: string | null) {
   if (typeof window === "undefined") return;
 
@@ -151,7 +162,9 @@ function writeCachedSuggestions(nextSuggestions: RestockSuggestion[], nextGenera
   }
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function RestockSuggestions() {
+  // Suggestions displayed on the page.
   const [suggestions, setSuggestions] = useState<RestockSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -162,6 +175,7 @@ export function RestockSuggestions() {
   const [transferErrors, setTransferErrors] = useState<Record<string, string>>({});
 
   const fetchSuggestions = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+    // Use cached suggestions unless the user clicked Regenerate.
     const cached = !force ? readCachedSuggestions() : null;
     if (cached) {
       setSuggestions(cached.suggestions);
@@ -171,6 +185,7 @@ export function RestockSuggestions() {
       return;
     }
 
+    // Show loading steps while the backend gathers data and calls AI.
     setLoading(true);
     setLoadingStep(0);
     setError(null);
@@ -184,6 +199,7 @@ export function RestockSuggestions() {
     });
 
     try {
+      // API route handles permission checks, data gathering, AI, and validation.
       const res = await fetch("/api/restock");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -191,6 +207,7 @@ export function RestockSuggestions() {
       const nextGeneratedAt = data.generatedAt ?? null;
       setSuggestions(nextSuggestions);
       setGeneratedAt(nextGeneratedAt);
+      // Save result in browser cache for quick return navigation.
       writeCachedSuggestions(nextSuggestions, nextGeneratedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate suggestions");
@@ -203,10 +220,12 @@ export function RestockSuggestions() {
   useEffect(() => { void fetchSuggestions(); }, [fetchSuggestions]);
 
   async function handleTransfer(s: RestockSuggestion) {
+    // Each suggestion is tracked by device + destination store.
     const key = `${s.deviceId}-${s.storeId}`;
     setTransferringIds(prev => new Set(prev).add(key));
     setTransferErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
 
+    // Convert the suggestion into a normal transfer request.
     const result = await createTransfer({
       source_store_id: s.warehouseStoreId,
       destination_store_id: s.storeId,
@@ -337,6 +356,7 @@ export function RestockSuggestions() {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
     <div className="rounded-2xl border border-surface-100 bg-white px-5 py-4 shadow-soft">

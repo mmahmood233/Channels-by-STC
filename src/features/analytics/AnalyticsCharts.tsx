@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains analytics charts and date filtering UI.
+
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
@@ -24,6 +26,7 @@ const BRAND_COLORS = [
   "#d8b4fe", "#ede9fe",
 ];
 
+// Renders this feature UI and connects user actions to server-side logic.
 function CurrencyTooltip({ active, payload, label, currency }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -40,6 +43,7 @@ function CurrencyTooltip({ active, payload, label, currency }: any) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function RateTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -51,6 +55,7 @@ function RateTooltip({ active, payload, label }: any) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function AnalyticsCharts({ revenueOverTime, topDevices, storeComparison, sellThrough, currency }: Props) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

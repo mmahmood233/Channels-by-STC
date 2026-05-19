@@ -1,10 +1,13 @@
 "use client";
 
+// File purpose: Contains authentication form UI and connects it to auth services.
+
 import { useState, useTransition } from "react";
 import { Eye, EyeOff, Lock, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
+// Handles authentication form state and calls the auth service.
 export function ResetPasswordForm() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();

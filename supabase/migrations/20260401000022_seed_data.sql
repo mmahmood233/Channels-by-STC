@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Seed Data
 -- Description: Realistic Bahrain-based demo data for development and testing.

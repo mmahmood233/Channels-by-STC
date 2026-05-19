@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create RLS Helper Functions and Business Logic Functions
 -- Description: Functions used by RLS policies and triggers.

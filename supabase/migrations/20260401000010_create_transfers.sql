@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Transfers and Transfer Items Tables
 -- Description: Stock transfer requests between locations.

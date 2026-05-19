@@ -1,3 +1,4 @@
+-- File purpose: Creates audit log triggers that record important database changes.
 -- ============================================================================
 -- Migration: Audit Log Triggers
 -- Description: Automatically records inserts, updates, and deletes on core

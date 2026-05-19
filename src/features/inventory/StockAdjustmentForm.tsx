@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains inventory UI for viewing stock and adjusting quantities.
+
 import { useState, useTransition } from "react";
 import { Plus, Minus, Loader2, CheckCircle2, ArrowLeft, PackageCheck } from "lucide-react";
 import { adjustStock } from "@/app/actions/inventory";
@@ -15,7 +17,9 @@ interface Props {
   defaultStoreId: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function StockAdjustmentForm({ stores, devices, defaultStoreId }: Props) {
+  // Form state selected by the user.
   const [storeId, setStoreId]     = useState(defaultStoreId || stores[0]?.id || "");
   const [deviceId, setDeviceId]   = useState("");
   const [mode, setMode]           = useState<"add" | "remove">("add");
@@ -26,18 +30,24 @@ export function StockAdjustmentForm({ stores, devices, defaultStoreId }: Props) 
   const { success, error: toastError } = useToast();
 
   function handleSubmit(e: React.FormEvent) {
+    // Prevent normal browser form submit.
     e.preventDefault();
     if (!deviceId) return;
     setLastResult(null);
 
+    // Add mode creates a positive adjustment.
+    // Remove mode creates a negative adjustment.
     const adjustment = mode === "add" ? qty : -qty;
     const deviceName = devices.find(d => d.id === deviceId)?.name ?? "";
 
     startTransition(async () => {
+      // Server action checks permission and calls the database RPC.
       const result = await adjustStock({ store_id: storeId, device_id: deviceId, adjustment, reason });
       if (result.error) {
+        // Show database or validation errors to the user.
         toastError(result.error);
       } else {
+        // Show success feedback and reset only the fields that should be reused.
         success(`Stock adjusted — new quantity: ${result.newQuantity}`);
         setLastResult({ newQuantity: result.newQuantity!, device: deviceName });
         setReason("");
@@ -180,6 +190,7 @@ export function StockAdjustmentForm({ stores, devices, defaultStoreId }: Props) 
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>

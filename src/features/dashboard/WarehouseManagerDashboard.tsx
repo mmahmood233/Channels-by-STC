@@ -1,3 +1,4 @@
+// File purpose: Renders role-specific dashboard summaries, cards, and recent activity sections.
 import {
   Package, ArrowLeftRight, Bell, TrendingUp,
   AlertTriangle, Clock, CheckCircle2, Warehouse,
@@ -18,6 +19,7 @@ interface Props {
   userName: string;
 }
 
+// Renders role-specific dashboard metrics and recent operational activity.
 export async function WarehouseManagerDashboard({ userName }: Props) {
   const supabase = await createServerSupabaseClient();
 

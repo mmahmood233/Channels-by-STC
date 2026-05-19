@@ -1,3 +1,4 @@
+// File purpose: Handles chatbot requests by building role-scoped context, calling OpenAI, and logging the interaction.
 // AI Chatbot API route. Builds role-aware database context, asks OpenAI for a
 // grounded answer, and logs each interaction for traceability.
 import { NextRequest, NextResponse } from "next/server";
@@ -8,6 +9,8 @@ import type { UserRole } from "@/types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// The route uses a simple intent value to decide what data should be loaded.
+// This keeps the chatbot faster because it does not need every table for every question.
 type ChatIntent =
   | "warehouse_availability"
   | "sales_revenue"
@@ -35,6 +38,9 @@ type DeviceRecord = {
   low_stock_threshold: number;
 };
 
+// Normalize user questions and database names into a simple searchable format.
+// Example: "City Centre" and "city center" become comparable.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function normalizeText(value: string) {
   return value
     .toLowerCase()
@@ -43,6 +49,9 @@ function normalizeText(value: string) {
     .trim();
 }
 
+// Detect the main topic of the question.
+// The detected intent is also stored in chatbot_logs for traceability.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function detectIntent(question: string): ChatIntent {
   const text = normalizeText(question);
 
@@ -71,6 +80,9 @@ function detectIntent(question: string): ChatIntent {
   return "general";
 }
 
+// Try to find whether the user mentioned a store by name, code, or warehouse keyword.
+// This helps the route scope answers to a specific branch when the question names one.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function findMentionedStore(question: string, stores: StoreRecord[]) {
   const text = normalizeText(question);
   if (/\bwarehouse\b|\bcentral warehouse\b|\bhidd\b/.test(text)) {
@@ -88,6 +100,9 @@ function findMentionedStore(question: string, stores: StoreRecord[]) {
   }) ?? null;
 }
 
+// Try to match the user's question to a known device.
+// The route uses this for direct answers such as warehouse availability.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function findMentionedDevice(question: string, devices: DeviceRecord[]) {
   const text = normalizeText(question);
 
@@ -104,10 +119,15 @@ function findMentionedDevice(question: string, devices: DeviceRecord[]) {
   }) ?? null;
 }
 
+// Format money consistently in Bahraini Dinar.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function currency(value: number) {
   return `BD ${value.toFixed(3)}`;
 }
 
+// Store every chatbot request in the database.
+// This supports auditability, evaluation, and troubleshooting.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 async function writeChatbotLog(params: {
   userId: string;
   role: UserRole;
@@ -143,8 +163,12 @@ async function writeChatbotLog(params: {
   }
 }
 
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 export async function POST(req: NextRequest) {
+  // Start time is used to calculate response_time_ms in chatbot_logs.
   const startedAt = Date.now();
+
+  // These variables are kept outside the try block so errors can still be logged.
   let logUserId: string | undefined;
   let logRole: UserRole | undefined;
   let logStoreId: string | null = null;
@@ -153,12 +177,16 @@ export async function POST(req: NextRequest) {
   let logQueryContext: Record<string, unknown> = {};
 
   try {
+    // User client respects the logged-in user's session.
+    // Service role client is used only in this trusted backend route to build context.
     const userSupabase = await createServerSupabaseClient();
     const serviceSupabase = await createServiceRoleClient();
 
+    // Step 1: confirm the user is logged in.
     const { data: { user } } = await userSupabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Step 2: read the message sent from the chatbot UI.
     const { message, history = [] } = await req.json();
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message required" }, { status: 400 });
@@ -168,6 +196,8 @@ export async function POST(req: NextRequest) {
     logQuestion = message;
     logIntent = detectIntent(message);
 
+    // Step 3: load the user's business profile.
+    // The role and store_id decide what the chatbot is allowed to answer.
     const { data: profile } = await userSupabase
       .from("profiles")
       .select("role, store_id, full_name, stores(name)")
@@ -183,6 +213,8 @@ export async function POST(req: NextRequest) {
     logRole = role;
     logStoreId = storeId;
 
+    // Step 4: load master data needed for matching store names and device names.
+    // These are small lists and help the route understand the user's question.
     const [
       { data: stores },
       { data: devices },
@@ -205,6 +237,8 @@ export async function POST(req: NextRequest) {
     const mentionedStore = findMentionedStore(message, activeStores);
     const mentionedDevice = findMentionedDevice(message, activeDevices);
 
+    // Store Managers must not see other retail branches.
+    // If they ask about another branch, return a clear permission-safe answer.
     const questionNamesAnotherRetailStore = Boolean(
       isStoreManager &&
       mentionedStore &&
@@ -236,6 +270,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ answer });
     }
 
+    // Decide the effective data scope for the answer.
+    // Store Manager: assigned store only.
+    // Admin/Warehouse: mentioned branch if provided, otherwise full system.
     const effectiveStoreId = isStoreManager
       ? storeId
       : mentionedStore && !mentionedStore.is_warehouse
@@ -250,6 +287,7 @@ export async function POST(req: NextRequest) {
     const contextParts: string[] = [];
     const directHints: string[] = [];
 
+    // This object is saved in chatbot_logs so we know what scope was used.
     logQueryContext = {
       intent: logIntent,
       role,
@@ -259,6 +297,8 @@ export async function POST(req: NextRequest) {
       scope: isStoreManager ? "assigned_store_plus_warehouse_availability" : "full_operational_access",
     };
 
+    // Add active device catalogue only when it is useful.
+    // This gives the AI device names, SKUs, prices, and thresholds.
     // Device catalogue is useful for general, device, and SKU questions.
     if (logIntent === "devices" || logIntent === "general") {
       const catalogueLines = activeDevices.slice(0, 60).map(
@@ -273,12 +313,16 @@ export async function POST(req: NextRequest) {
 
     const needsInventory = ["inventory", "warehouse_availability", "general"].includes(logIntent);
     if (needsInventory) {
+      // Read inventory from the database view.
+      // The view already joins devices, stores, categories, and stock status.
       let inventoryQuery = serviceSupabase
         .from("current_inventory_view")
         .select("device_id, device_name, brand, sku, store_id, store_name, quantity, low_stock_threshold, stock_status, is_warehouse")
         .order("store_name")
         .order("device_name");
 
+      // Store Managers see their assigned store and warehouse stock only.
+      // Admin/Warehouse can narrow by the store mentioned in the question.
       if (isStoreManager && storeId) {
         inventoryQuery = inventoryQuery.or(`store_id.eq.${storeId},is_warehouse.eq.true`);
       } else if (mentionedStore) {
@@ -290,6 +334,7 @@ export async function POST(req: NextRequest) {
       const inventoryRows = inventory ?? [];
 
       if (inventoryRows.length > 0) {
+        // Group inventory rows by store so the chatbot answer is easier to read.
         const byStore: Record<string, typeof inventoryRows> = {};
         for (const row of inventoryRows) {
           const key = `${row.store_name}${row.is_warehouse ? " (Warehouse)" : ""}`;
@@ -309,6 +354,8 @@ export async function POST(req: NextRequest) {
 
         contextParts.push(`## Inventory Context\n${storeBlocks.join("\n")}`);
 
+        // If the question asks about warehouse availability, add a direct hint.
+        // This helps the model answer clearly instead of only reading raw rows.
         if (logIntent === "warehouse_availability" && warehouseStore) {
           const warehouseRows = inventoryRows.filter((row) => row.is_warehouse);
           if (warehouseRows.length > 0) {
@@ -324,6 +371,8 @@ export async function POST(req: NextRequest) {
 
     const needsSales = ["sales_revenue", "general"].includes(logIntent);
     if (needsSales) {
+      // Monthly sales view is used for revenue and sales questions.
+      // It gives aggregated data instead of loading every sale row.
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
       const fromDate = twelveMonthsAgo.toISOString().split("T")[0];
@@ -342,6 +391,8 @@ export async function POST(req: NextRequest) {
       const rows = salesHistory ?? [];
 
       if (rows.length > 0) {
+        // Calculate total units and revenue before sending context to OpenAI.
+        // This makes the final answer more accurate.
         const totalUnits = rows.reduce((sum, row) => sum + Number(row.total_units_sold), 0);
         const totalRevenue = rows.reduce((sum, row) => sum + Number(row.total_revenue), 0);
         const salesScope = effectiveStoreName ? ` for ${effectiveStoreName}` : "";
@@ -350,6 +401,7 @@ export async function POST(req: NextRequest) {
           `Computed revenue${salesScope} from available monthly sales records: ${currency(totalRevenue)} from ${totalUnits} units sold.`
         );
 
+        // Group sales by month for trend questions.
         const byMonth: Record<string, { units: number; revenue: number }> = {};
         for (const row of rows) {
           const month = String(row.sale_month).slice(0, 7);
@@ -363,6 +415,7 @@ export async function POST(req: NextRequest) {
           .slice(0, 6)
           .map(([month, value]) => `  - ${month}: ${value.units} units, ${currency(value.revenue)}`);
 
+        // Group sales by device so the chatbot can mention top sellers.
         const byDevice: Record<string, { units: number; revenue: number }> = {};
         for (const row of rows) {
           const key = `${row.brand} ${row.device_name}`;
@@ -386,6 +439,7 @@ export async function POST(req: NextRequest) {
 
     const needsAlerts = ["alerts", "general"].includes(logIntent);
     if (needsAlerts) {
+      // Alerts explain current operational problems such as low stock.
       let alertQuery = serviceSupabase
         .from("alerts")
         .select("alert_type, message, severity, store_id, stores(name)")
@@ -408,6 +462,7 @@ export async function POST(req: NextRequest) {
 
     const needsTransfers = ["transfers", "general"].includes(logIntent);
     if (needsTransfers) {
+      // Transfers show movement requests between warehouse and branches.
       let transferQuery = serviceSupabase
         .from("transfers")
         .select("status, notes, transfer_date, created_at, source_store_id, destination_store_id, from_store:source_store_id(name), to_store:destination_store_id(name), transfer_items(quantity, devices(name, brand))")
@@ -441,6 +496,8 @@ export async function POST(req: NextRequest) {
 
     const needsForecasts = ["forecasts", "general"].includes(logIntent);
     if (needsForecasts) {
+      // Forecast view compares predicted demand with current stock.
+      // This is used for demand-risk answers.
       let forecastQuery = serviceSupabase
         .from("forecast_vs_inventory_view")
         .select("device_id, predicted_quantity, current_stock, stock_gap, risk_level, forecast_period, device_name, store_id, store_name")
@@ -472,9 +529,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (directHints.length > 0) {
+      // Put calculated hints at the top of the prompt context.
+      // The model should use these first because they are already computed.
       contextParts.unshift(`## Computed Answer Hints\n${directHints.map((hint) => `  - ${hint}`).join("\n")}`);
     }
 
+    // Build the final OpenAI system prompt and role access guardrail.
     const today = new Date().toISOString().split("T")[0];
     const accessScope = isStoreManager
       ? `\n\n## Access Scope Guardrail\nThe user is assigned to ${assignedStoreName ?? "their store"}.\n- Sales, revenue, alerts, transfers, and forecasts are scoped to that assigned store.\n- Warehouse inventory rows are included only for availability and transfer planning.\n- Do not provide other retail branch sales, revenue, alerts, forecasts, or inventory details.\n- If another branch is requested, explain the role limitation.`
@@ -488,6 +548,10 @@ export async function POST(req: NextRequest) {
       directHints,
     };
 
+    // Final message list sent to OpenAI:
+    // 1. system prompt + database context
+    // 2. short chat history
+    // 3. latest user question
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: `${systemPrompt}\n\n${contextBlock}` },
       ...(history as unknown as { role: "user" | "assistant"; content: string }[])
@@ -496,6 +560,8 @@ export async function POST(req: NextRequest) {
       { role: "user", content: message },
     ];
 
+    // Ask OpenAI for the final answer.
+    // Low temperature keeps answers more stable and less creative.
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages,
@@ -505,6 +571,7 @@ export async function POST(req: NextRequest) {
 
     const answer = completion.choices[0]?.message?.content ?? "Sorry, I could not generate a response.";
 
+    // Save successful chatbot interaction for traceability.
     await writeChatbotLog({
       userId: user.id,
       role,
@@ -524,6 +591,8 @@ export async function POST(req: NextRequest) {
     console.error("[chatbot route]", err);
     const message = err instanceof Error ? err.message : "Unexpected error";
 
+    // If an error happens after user/profile/message are known, log it too.
+    // This helps explain failed chatbot requests during testing.
     if (logUserId && logRole && logQuestion) {
       await writeChatbotLog({
         userId: logUserId,

@@ -1,3 +1,4 @@
+// File purpose: Stores shared labels and fixed application values.
 import type { UserRole } from "@/types";
 
 // Application name

@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains Admin user management UI.
+
 import { useState, useTransition } from "react";
 import { UserPlus, X, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 import { createUser } from "@/app/actions/create-user";
@@ -21,6 +23,7 @@ const ROLES = [
   { value: "admin", label: "Admin" },
 ];
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function CreateUserModal({ stores }: CreateUserModalProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();

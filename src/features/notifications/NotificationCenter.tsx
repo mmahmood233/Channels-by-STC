@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains realtime notification UI and navigation behavior.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell, AlertTriangle, ArrowLeftRight, X, CheckCheck,

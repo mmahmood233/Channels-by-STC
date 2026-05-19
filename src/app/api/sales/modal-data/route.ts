@@ -1,6 +1,8 @@
+// File purpose: Provides stores, devices, and stock data needed by the sale modal.
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 export async function GET() {
   const supabase = await createServerSupabaseClient();
   const {

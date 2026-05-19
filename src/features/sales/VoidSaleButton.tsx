@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains sales UI for recording, viewing, or voiding sales.
+
 import { useState, useTransition } from "react";
 import { Ban, X, Loader2 } from "lucide-react";
 import { voidSale } from "@/app/actions/sales";
@@ -10,6 +12,7 @@ interface Props {
   isVoided: boolean;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function VoidSaleButton({ saleId, isVoided }: Props) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");

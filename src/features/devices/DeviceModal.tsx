@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains device catalogue UI for listing, editing, and status changes.
+
 import { useState, useTransition } from "react";
 import { X, Plus, Pencil, Loader2 } from "lucide-react";
 import { createDevice, updateDevice } from "@/app/actions/devices";
@@ -24,6 +26,7 @@ interface Props {
   device?: DeviceData; // if provided → edit mode
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function DeviceModal({ categories, device }: Props) {
   const isEdit = !!device;
   const [open, setOpen] = useState(false);
@@ -236,6 +239,7 @@ export function DeviceModal({ categories, device }: Props) {
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>

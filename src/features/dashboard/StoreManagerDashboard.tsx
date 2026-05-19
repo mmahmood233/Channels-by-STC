@@ -1,3 +1,4 @@
+// File purpose: Renders role-specific dashboard summaries, cards, and recent activity sections.
 import {
   ShoppingCart, Package, Bell, ArrowLeftRight,
   DollarSign, TrendingUp, AlertTriangle, CheckCircle2,
@@ -20,6 +21,7 @@ interface Props {
   userName: string;
 }
 
+// Renders role-specific dashboard metrics and recent operational activity.
 export async function StoreManagerDashboard({ storeId, storeName, userName }: Props) {
   const supabase = await createServerSupabaseClient();
   const serviceClient = await createServiceRoleClient();

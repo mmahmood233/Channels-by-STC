@@ -1,8 +1,11 @@
 "use server";
 
+// File purpose: Contains server actions for updating alert status.
+
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function acknowledgeAlert(alertId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,6 +23,7 @@ export async function acknowledgeAlert(alertId: string) {
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function resolveAlert(alertId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,6 +43,7 @@ export async function resolveAlert(alertId: string) {
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function dismissAlert(alertId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

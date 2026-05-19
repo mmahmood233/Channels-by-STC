@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains transfer UI for requests and lifecycle actions.
+
 import { useState, useTransition } from "react";
 import { CheckCircle2, XCircle, Truck, PackageCheck, Loader2 } from "lucide-react";
 import { approveTransfer, rejectTransfer, markInTransit, completeTransfer } from "@/app/actions/transfers";
@@ -12,6 +14,7 @@ interface TransferActionsProps {
   userRole: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function TransferActions({ transferId, status, userRole }: TransferActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +87,7 @@ export function TransferActions({ transferId, status, userRole }: TransferAction
   );
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 function ActionBtn({
   onClick,
   pending,

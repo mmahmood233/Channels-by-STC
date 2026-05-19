@@ -1,3 +1,4 @@
+-- File purpose: Provides a helper SQL script for running migration files together.
 -- ============================================================================
 -- Migration: Create Enums
 -- Description: All PostgreSQL enum types used across the database

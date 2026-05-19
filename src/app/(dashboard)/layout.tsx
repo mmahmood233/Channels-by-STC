@@ -1,3 +1,4 @@
+// File purpose: Protects dashboard pages and passes authenticated user data into the shared dashboard shell.
 // Shared layout for all dashboard pages
 // Verifies auth, loads the user profile, counts active alerts for the bell badge,
 // then renders the sidebar + topbar shell around the page content.
@@ -5,6 +6,7 @@ import { DashboardShell } from "@/components/layout/DashboardShell";
 import type { UserRole } from "@/types";
 import { getCurrentUserProfile } from "@/lib/auth/current-user";
 
+// Supports the application by connecting UI, data, or shared business logic.
 export default async function DashboardLayout({
   children,
 }: {

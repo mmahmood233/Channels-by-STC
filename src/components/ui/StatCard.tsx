@@ -1,3 +1,4 @@
+// File purpose: Contains a reusable UI component used by multiple pages or features.
 import { cn } from "@/utils/cn";
 import type { LucideIcon } from "lucide-react";
 
@@ -15,6 +16,7 @@ interface StatCardProps {
   className?: string;
 }
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function StatCard({
   title,
   value,

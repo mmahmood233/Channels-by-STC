@@ -1,3 +1,4 @@
+// File purpose: Builds email content for monthly reporting.
 interface ReportData {
   month: string;           // e.g. "April 2026"
   totalRevenue: string;    // formatted BHD string
@@ -11,6 +12,7 @@ interface ReportData {
   storeBreakdown: { name: string; revenue: string; sales: number }[];
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 export function buildMonthlyReportHtml(data: ReportData): string {
   const topDevicesRows = data.topDevices
     .map(

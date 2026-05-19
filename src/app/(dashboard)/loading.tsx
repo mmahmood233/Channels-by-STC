@@ -1,7 +1,10 @@
+// File purpose: Shows a loading placeholder while dashboard data is being fetched.
+// Supports the application by connecting UI, data, or shared business logic.
 function SkeletonBlock({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-2xl bg-surface-100 ${className}`} />;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 export default function DashboardRouteLoading() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading page data">

@@ -1,3 +1,4 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { requireAdminProfile } from "@/lib/auth/current-user";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ExportCsvButton } from "@/components/ui/ExportCsvButton";
@@ -12,6 +13,7 @@ const ACTION_COLORS: Record<string, string> = {
   LOGIN:  "bg-purple-100 text-purple-700",
 };
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function AuditLogsPage({
   searchParams,
 }: {
@@ -187,6 +189,7 @@ export default async function AuditLogsPage({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function summariseChanges(
   oldVals: Record<string, unknown> | null,
   newVals: Record<string, unknown> | null
@@ -205,6 +208,7 @@ function summariseChanges(
   return "";
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-surface-100 bg-white px-5 py-4 shadow-soft">
@@ -214,6 +218,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
@@ -221,6 +226,7 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
   return qs ? `${base}?${qs}` : base;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function FilterChip({ href, active, label }: { href: string; active: boolean; label: string; color?: string }) {
   return (
     <a href={href} className={cn(
@@ -233,10 +239,12 @@ function FilterChip({ href, active, label }: { href: string; active: boolean; la
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">{children}</th>;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 text-surface-700", className)}>{children}</td>;
 }

@@ -1,3 +1,4 @@
+// File purpose: Loads data for a protected dashboard module and renders its page UI.
 import { requireAdminProfile } from "@/lib/auth/current-user";
 import { CreateUserModal } from "@/features/users/CreateUserModal";
 import { UsersTable } from "@/features/users/UsersTable";
@@ -6,6 +7,7 @@ import { PrintButton } from "@/components/ui/PrintButton";
 import { formatDateTime } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
+// Loads data for this dashboard page and renders the matching feature UI.
 export default async function UsersPage({
   searchParams,
 }: {
@@ -92,6 +94,7 @@ export default async function UsersPage({
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-surface-100 bg-white px-5 py-4 shadow-soft">
@@ -101,6 +104,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function buildUrl(base: string, params: Record<string, string | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -110,6 +114,7 @@ function buildUrl(base: string, params: Record<string, string | undefined>) {
   return qs ? `${base}?${qs}` : base;
 }
 
+// Supports the application by connecting UI, data, or shared business logic.
 function FilterChip({ href, active, label }: { href: string; active: boolean; label: string }) {
   return (
     <a

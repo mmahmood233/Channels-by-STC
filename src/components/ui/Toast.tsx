@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains a reusable UI component used by multiple pages or features.
+
 import { useEffect, useState, createContext, useContext, useCallback } from "react";
 import { CheckCircle2, XCircle, X, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -20,6 +22,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -48,6 +51,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Renders a reusable UI element used across multiple dashboard modules.
 function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const [visible, setVisible] = useState(false);
 
@@ -81,6 +85,7 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: (id: stri
   );
 }
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error("useToast must be used inside ToastProvider");

@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains analytics charts and date filtering UI.
+
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { Calendar } from "lucide-react";
@@ -16,6 +18,7 @@ interface Props {
   to: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function DateRangePicker({ from, to }: Props) {
   const router = useRouter();
   const pathname = usePathname();

@@ -1,3 +1,4 @@
+// File purpose: Generates validated AI restock suggestions from inventory, forecast, sales, and warehouse data.
 // AI Restock Suggestions API — admin + warehouse manager only
 // Fetches low-stock items, forecast warnings, and sales velocity,
 // then calls GPT-4o-mini to generate restock transfer suggestions.
@@ -8,6 +9,8 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// This is the shape returned to the frontend.
+// The frontend can show these as cards and create transfer requests from them.
 export interface RestockSuggestion {
   deviceId: string;
   deviceName: string;
@@ -52,10 +55,15 @@ type TopSellingRow = {
   total_units_sold: number;
 };
 
+// Sort urgency so critical suggestions appear first.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function urgencyRank(urgency: RestockSuggestion["urgency"]) {
   return urgency === "critical" ? 0 : urgency === "high" ? 1 : 2;
 }
 
+// Build deterministic database suggestions without AI.
+// This is used as a fallback if OpenAI gives no valid suggestions.
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 function buildFallbackSuggestions(params: {
   lowStock: LowStockRow[];
   forecasts: ForecastRow[];
@@ -63,6 +71,7 @@ function buildFallbackSuggestions(params: {
   warehouseStock: Map<string, number>;
   warehouseStoreId: string;
 }) {
+  // Fast lookup maps for forecast and sales data by device-store pair.
   const forecastByTarget = new Map(
     params.forecasts
       .filter((forecast) => forecast.store_id)
@@ -75,18 +84,21 @@ function buildFallbackSuggestions(params: {
   const suggestions = new Map<string, RestockSuggestion>();
 
   for (const row of params.lowStock) {
+    // Do not suggest a transfer if the warehouse has no stock for this device.
     const availableAtWarehouse = params.warehouseStock.get(row.device_id) ?? 0;
     if (availableAtWarehouse <= 0) continue;
 
     const key = `${row.device_id}-${row.store_id}`;
     const forecast = forecastByTarget.get(key);
     const monthlySales = monthlySalesByTarget.get(key) ?? 0;
+    // Predicted demand uses forecast first, then threshold/sales as backup signals.
     const predictedDemand = Math.max(
       Number(forecast?.predicted_quantity ?? 0),
       Number(row.low_stock_threshold ?? 0),
       monthlySales > 0 ? Math.ceil(monthlySales / 2) : 0,
       Number(row.quantity ?? 0) + 1
     );
+    // Shortage is the amount needed to cover demand or minimum stock threshold.
     const shortage = Math.max(predictedDemand - Number(row.quantity), Number(row.low_stock_threshold) - Number(row.quantity), 1);
     const urgency: RestockSuggestion["urgency"] =
       row.stock_status === "out_of_stock" || Number(row.quantity) === 0
@@ -96,6 +108,7 @@ function buildFallbackSuggestions(params: {
           : forecast?.risk_level === "at_risk" || Number(row.quantity) <= Number(row.low_stock_threshold)
             ? "high"
             : "medium";
+    // Suggested quantity must be realistic and cannot exceed warehouse stock.
     const suggestedQty = Math.min(Math.max(Math.ceil(shortage), 1), availableAtWarehouse, urgency === "critical" ? 50 : 20);
 
     if (suggestedQty <= 0) continue;
@@ -126,19 +139,23 @@ function buildFallbackSuggestions(params: {
     .slice(0, 15);
 }
 
+// Handles a backend API request, checks access, and returns JSON to the frontend.
 export async function GET() {
   try {
+    // Use the logged-in user's session for permission checks.
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Only Admin and Warehouse Manager can use AI Restock.
     const { data: profile } = await supabase
       .from("profiles").select("role, store_id").eq("id", user.id).single();
     if (!profile || (profile.role !== "admin" && profile.role !== "warehouse_manager")) {
       return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
 
-    // Gather all the data AI needs
+    // Gather all the data AI needs.
+    // The data comes from database views, not from hard-coded values.
     const [
       { data: lowStock },
       { data: forecasts },
@@ -178,6 +195,7 @@ export async function GET() {
 
     const warehouseStore = stores?.find(s => s.is_warehouse);
     const warehouseId = warehouseStore?.id ?? "";
+    // Map warehouse stock by device_id so validation is easy.
     const warehouseStock = new Map(
       (warehouseInventory ?? []).map((row) => [row.device_id as string, row.quantity as number])
     );
@@ -189,7 +207,8 @@ export async function GET() {
       warehouseStoreId: warehouseId,
     });
 
-    // Build context for the AI — include real UUIDs so AI uses them directly
+    // Build context for the AI.
+    // Real UUIDs are included so AI suggestions can be validated later.
     const lowStockLines = (lowStock ?? []).map(r =>
       `device_id="${r.device_id}" store_id="${r.store_id}" | ${r.brand} ${r.device_name} (SKU: ${r.sku}) @ ${r.store_name}: ${r.quantity} units (threshold: ${r.low_stock_threshold}, status: ${r.stock_status})`
     ).join("\n");
@@ -236,6 +255,7 @@ Rules:
     let source: "ai" | "database" = "ai";
 
     try {
+      // Ask OpenAI to analyze the prepared data and return JSON only.
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -252,11 +272,14 @@ Rules:
       // AI may return { suggestions: [...] } or just [...]
       suggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions ?? parsed.items ?? []);
     } catch (error) {
+      // If AI fails, the page can still work using database fallback suggestions.
       console.warn("[restock route] AI suggestion generation failed, using deterministic fallback:", error);
       suggestions = [];
     }
 
-    // Validate AI output — filter out any suggestions with fake/hallucinated IDs
+    // Validate AI output.
+    // This removes fake device IDs, fake store IDs, warehouse destinations,
+    // invalid quantities, and suggestions that exceed warehouse stock.
     const validDeviceIds = new Set([
       ...(lowStock ?? []).map(r => r.device_id as string),
       ...(forecasts ?? []).map(r => r.device_id as string),
@@ -265,6 +288,7 @@ Rules:
     const storeById = new Map((stores ?? []).map(s => [s.id as string, s]));
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    // Remove duplicate suggestions for the same device and destination store.
     suggestions = suggestions.filter((s) => {
       const destinationStore = storeById.get(s.storeId);
       const availableAtWarehouse = warehouseStock.get(s.deviceId) ?? 0;
@@ -295,11 +319,13 @@ Rules:
 
     suggestions = Array.from(suggestionByTarget.values());
 
+    // If OpenAI returned nothing useful, use deterministic database suggestions.
     if (suggestions.length === 0 && fallbackSuggestions.length > 0) {
       suggestions = fallbackSuggestions;
       source = "database";
     }
 
+    // Frontend reads suggestions and generatedAt to render the cards.
     return NextResponse.json({
       suggestions,
       generatedAt: new Date().toISOString(),

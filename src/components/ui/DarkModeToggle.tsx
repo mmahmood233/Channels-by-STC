@@ -1,8 +1,11 @@
 "use client";
 
+// File purpose: Contains a reusable UI component used by multiple pages or features.
+
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
+// Renders a reusable UI element used across multiple dashboard modules.
 export function DarkModeToggle() {
   const { theme, toggle } = useTheme();
   return (

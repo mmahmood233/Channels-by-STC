@@ -1,8 +1,11 @@
 "use server";
 
+// File purpose: Contains server actions for Admin user management.
+
 import { createServerSupabaseClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateUserStatus(userId: string, status: "active" | "inactive") {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,6 +30,7 @@ export async function updateUserStatus(userId: string, status: "active" | "inact
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function updateUserRole(userId: string, role: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -51,6 +55,7 @@ export async function updateUserRole(userId: string, role: string) {
   return { success: true };
 }
 
+// Runs on the server to validate the request, update Supabase, and refresh affected pages.
 export async function resetUserPassword(userId: string, newPassword: string) {
   const supabaseCheck = await createServerSupabaseClient();
   const { data: { user } } = await supabaseCheck.auth.getUser();

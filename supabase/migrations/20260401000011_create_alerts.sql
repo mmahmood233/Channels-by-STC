@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Create Alerts Table
 -- Description: System-generated alerts for low stock, forecast warnings,

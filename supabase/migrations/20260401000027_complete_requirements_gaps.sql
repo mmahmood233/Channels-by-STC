@@ -1,3 +1,4 @@
+-- File purpose: Creates or updates Supabase database structure, policies, seed data, or backend logic.
 -- ============================================================================
 -- Migration: Complete Requirements Gaps
 -- Description: Adds rejected transfers, atomic stock adjustments, and automatic

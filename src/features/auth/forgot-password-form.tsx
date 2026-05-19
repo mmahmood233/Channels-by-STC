@@ -1,9 +1,12 @@
 "use client";
 
+// File purpose: Contains authentication form UI and connects it to auth services.
+
 import { useState } from "react";
 import { Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { resetPassword } from "@/services/auth";
 
+// Handles authentication form state and calls the auth service.
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);

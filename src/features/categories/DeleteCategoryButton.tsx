@@ -1,10 +1,13 @@
 "use client";
 
+// File purpose: Contains category table, modal, and delete UI.
+
 import { useState, useTransition } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { deleteCategory } from "@/app/actions/categories";
 import { useToast } from "@/components/ui/Toast";
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function DeleteCategoryButton({ categoryId, deviceCount }: { categoryId: string; deviceCount: number }) {
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);

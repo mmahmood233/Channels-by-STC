@@ -1,5 +1,7 @@
 "use client";
 
+// File purpose: Contains transfer UI for requests and lifecycle actions.
+
 import { useState, useTransition } from "react";
 import { Plus, X, Trash2, ArrowLeftRight, Loader2, CheckCircle2 } from "lucide-react";
 import { createTransfer } from "@/app/actions/transfers-create";
@@ -27,6 +29,7 @@ interface NewTransferModalProps {
   userRole: string;
 }
 
+// Renders this feature UI and connects user actions to server-side logic.
 export function NewTransferModal({
   currentStoreId,
   allStores: initialStores = [],
@@ -34,6 +37,7 @@ export function NewTransferModal({
   inventoryByStore: initialInventoryByStore,
   userRole,
 }: NewTransferModalProps) {
+  // Modal state and submit state.
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [loadingData, setLoadingData] = useState(false);
@@ -47,6 +51,9 @@ export function NewTransferModal({
     initialInventory
   );
 
+  // Destination/source rules are different by role.
+  // Admin and Warehouse Manager can choose more freely.
+  // Store Manager usually requests stock to their assigned store.
   const otherStores = allStores.filter((s) => s.id !== currentStoreId);
   const sourceOptions = allStores.some((s) => s.is_warehouse)
     ? allStores.filter((s) => s.is_warehouse)
@@ -65,11 +72,15 @@ export function NewTransferModal({
   const [items, setItems] = useState<{ device_id: string; quantity: number }[]>([
     { device_id: "", quantity: 1 },
   ]);
+  // The device list depends on the selected source store.
   const currentSourceInventory = inventoryByStore?.[sourceId] ?? inventoryAtCurrentStore;
 
   async function loadModalData() {
+    // If dropdown data is already available, do not fetch again.
     if (allStores.length > 0 && Object.keys(inventoryByStore).length > 0) return;
 
+    // Load stores and source inventory only when the modal opens.
+    // This keeps the Transfers page faster.
     setLoadingData(true);
     setError(null);
     try {
@@ -98,6 +109,7 @@ export function NewTransferModal({
   }
 
   function openModal() {
+    // Reset form every time the modal opens.
     setSourceId(defaultSourceId);
     setDestId(defaultDestinationId);
     setItems([{ device_id: "", quantity: 1 }]);
@@ -108,10 +120,12 @@ export function NewTransferModal({
   }
 
   function changeSource(nextSourceId: string) {
+    // Changing source changes available stock, so selected items must reset.
     setSourceId(nextSourceId);
     setItems([{ device_id: "", quantity: 1 }]);
     setError(null);
 
+    // Source and destination cannot be the same.
     if (nextSourceId === destId) {
       const nextDestination = allStores.find((store) => store.id !== nextSourceId)?.id ?? "";
       setDestId(nextDestination);
@@ -119,21 +133,27 @@ export function NewTransferModal({
   }
 
   function addItem() {
+    // Add another device row to the transfer request.
     setItems((prev) => [...prev, { device_id: "", quantity: 1 }]);
   }
 
   function removeItem(idx: number) {
+    // Remove one device row by index.
     setItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function updateItem(idx: number, field: "device_id" | "quantity", val: string | number) {
+    // Update one transfer item row.
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== idx) return item;
+        // Reset quantity when device changes.
         if (field === "device_id") return { ...item, device_id: String(val), quantity: 1 };
         const dev = currentSourceInventory.find((d) => d.id === item.device_id);
         if (!dev) return { ...item, quantity: Number(val) };
 
+        // Prevent requesting more than the source store has.
+        // If the same device is selected in another row, subtract that first.
         const usedInOtherRows = prev
           .filter((row, j) => j !== idx && row.device_id === item.device_id)
           .reduce((sum, row) => sum + row.quantity, 0);
@@ -143,9 +163,11 @@ export function NewTransferModal({
     );
   }
 
+  // Only valid selected device rows are submitted.
   const validItems = items.filter((i) => i.device_id && i.quantity > 0);
 
   function submit() {
+    // Client-side validation before server action.
     if (!validItems.length) { setError("Add at least one item."); return; }
     if (sourceId === destId) { setError("Source and destination must be different."); return; }
     for (const item of validItems) {
@@ -160,6 +182,7 @@ export function NewTransferModal({
     }
     setError(null);
     startTransition(async () => {
+      // Server action calls create_transfer_atomic in the database.
       const result = await createTransfer({
         source_store_id: sourceId,
         destination_store_id: destId,
