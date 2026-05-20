@@ -2,7 +2,7 @@
 
 // File purpose: Contains inventory UI for viewing stock and adjusting quantities.
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Plus, Minus, Loader2, CheckCircle2, ArrowLeft, PackageCheck } from "lucide-react";
 import { adjustStock } from "@/app/actions/inventory";
 import { useToast } from "@/components/ui/Toast";
@@ -25,9 +25,14 @@ export function StockAdjustmentForm({ stores, devices, defaultStoreId }: Props) 
   const [mode, setMode]           = useState<"add" | "remove">("add");
   const [qty, setQty]             = useState(1);
   const [reason, setReason]       = useState("");
+  const [mounted, setMounted]     = useState(false);
   const [isPending, startTransition] = useTransition();
   const [lastResult, setLastResult]  = useState<{ newQuantity: number; device: string } | null>(null);
   const { success, error: toastError } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     // Prevent normal browser form submit.
@@ -178,7 +183,7 @@ export function StockAdjustmentForm({ stores, devices, defaultStoreId }: Props) 
 
           <button
             type="submit"
-            disabled={isPending || !deviceId || !storeId}
+            disabled={mounted ? isPending || !deviceId || !storeId : false}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60 transition-all active:scale-95"
           >
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "add" ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}

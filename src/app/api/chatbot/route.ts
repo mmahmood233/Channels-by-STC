@@ -80,6 +80,16 @@ function detectIntent(question: string): ChatIntent {
   return "general";
 }
 
+// Decide whether a general message is still related to this system.
+// If it is not related, the route returns a fixed out-of-scope answer
+// instead of sending the message to OpenAI.
+function isRelevantQuestion(question: string, intent: ChatIntent) {
+  if (intent !== "general") return true;
+
+  const text = normalizeText(question);
+  return /\bhelp\b|\bwhat can you do\b|\bwho are you\b|\bhow do you work\b|\bdashboard\b|\bsystem\b|\binventory\b|\bstock\b|\bsales\b|\btransfer\b|\bforecast\b|\balert\b|\bdevice\b|\bstore\b|\bwarehouse\b|\breport\b|\brestock\b|\bchatbot\b/.test(text);
+}
+
 // Try to find whether the user mentioned a store by name, code, or warehouse keyword.
 // This helps the route scope answers to a specific branch when the question names one.
 // Handles a backend API request, checks access, and returns JSON to the frontend.
@@ -212,6 +222,26 @@ export async function POST(req: NextRequest) {
 
     logRole = role;
     logStoreId = storeId;
+
+    if (!isRelevantQuestion(message, logIntent)) {
+      const answer = "That question is outside my scope. I can help with inventory, stock levels, sales, transfers, alerts, forecasts, devices, stores, reports, and restock planning.";
+
+      await writeChatbotLog({
+        userId: user.id,
+        role,
+        storeId,
+        question: message,
+        answer,
+        status: "success",
+        startedAt,
+        interpretedIntent: "general",
+        queryContext: { rejectedAsOutOfScope: true },
+        promptTokens: 0,
+        completionTokens: 0,
+      });
+
+      return NextResponse.json({ answer });
+    }
 
     // Step 4: load master data needed for matching store names and device names.
     // These are small lists and help the route understand the user's question.

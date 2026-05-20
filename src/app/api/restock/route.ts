@@ -8,6 +8,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const AI_TIMEOUT_MS = 10_000;
+const AI_MAX_SUGGESTIONS = 10;
 
 // This is the shape returned to the frontend.
 // The frontend can show these as cards and create transfer requests from them.
@@ -139,6 +141,17 @@ function buildFallbackSuggestions(params: {
     .slice(0, 15);
 }
 
+function parseAiSuggestions(raw: string) {
+  const cleaned = raw
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "");
+
+  const parsed = JSON.parse(cleaned);
+  return Array.isArray(parsed) ? parsed : (parsed.suggestions ?? parsed.items ?? []);
+}
+
 // Handles a backend API request, checks access, and returns JSON to the frontend.
 export async function GET() {
   try {
@@ -209,24 +222,43 @@ export async function GET() {
 
     // Build context for the AI.
     // Real UUIDs are included so AI suggestions can be validated later.
-    const lowStockLines = (lowStock ?? []).map(r =>
+    const lowStockLines = (lowStock ?? []).slice(0, 25).map(r =>
       `device_id="${r.device_id}" store_id="${r.store_id}" | ${r.brand} ${r.device_name} (SKU: ${r.sku}) @ ${r.store_name}: ${r.quantity} units (threshold: ${r.low_stock_threshold}, status: ${r.stock_status})`
     ).join("\n");
 
-    const forecastLines = (forecasts ?? []).map(r =>
+    const forecastLines = (forecasts ?? []).slice(0, 20).map(r =>
       `device_id="${r.device_id}" store_id="${r.store_id}" | ${r.device_name} @ ${r.store_name ?? "Global"}: predicted demand ${r.predicted_quantity}, current stock ${r.current_stock}, gap ${r.stock_gap} — ${r.risk_level}`
     ).join("\n");
 
-    const topSellingLines = (topSelling ?? []).map(r =>
+    const topSellingLines = (topSelling ?? []).slice(0, 15).map(r =>
       `device_id="${r.device_id}" store_id="${r.store_id}" | ${r.device_name} @ ${r.store_name}: ${r.total_units_sold} units sold this month`
     ).join("\n");
 
     const systemPrompt = `You are an inventory management AI for Channels by stc in Bahrain.
 Analyze the stock levels, forecasts, and sales velocity data provided.
 Generate restock transfer suggestions from the warehouse to retail stores.
-Respond ONLY with a valid JSON array. No markdown, no explanation.
+Respond ONLY with a valid JSON object. No markdown, no explanation.
 
-Each item in the array must have these exact fields:
+The JSON object must be:
+{
+  "suggestions": [
+    {
+      "deviceId": "uuid string from the data",
+      "deviceName": "string",
+      "brand": "string",
+      "sku": "string",
+      "storeId": "uuid of the destination retail store",
+      "storeName": "string",
+      "currentStock": number,
+      "predictedDemand": number,
+      "suggestedQty": number,
+      "urgency": "critical" | "high" | "medium",
+      "reason": "short sentence"
+    }
+  ]
+}
+
+Each item must use these exact fields:
 {
   "deviceId": "uuid string from the data",
   "deviceName": "string",
@@ -245,9 +277,10 @@ Rules:
 - "critical" = out of stock or will run out in < 3 days based on sales velocity
 - "high" = below threshold or shortage forecast
 - "medium" = at risk or trending toward low stock
-- Only suggest realistic quantities (don't suggest more than 50 units unless critical)
+- Only suggest realistic quantities
 - Sort by urgency: critical first, then high, then medium
-- Maximum 15 suggestions`;
+- Maximum ${AI_MAX_SUGGESTIONS} suggestions
+- Keep reasons short so the JSON is not cut off`;
 
     const userMessage = `Current Low/Out of Stock Items:\n${lowStockLines || "None"}\n\nForecast Warnings:\n${forecastLines || "None"}\n\nTop Selling This Month:\n${topSellingLines || "None"}\n\nWarehouse store ID: ${warehouseStore?.id ?? "unknown"}`;
 
@@ -255,22 +288,28 @@ Rules:
     let source: "ai" | "database" = "ai";
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
       // Ask OpenAI to analyze the prepared data and return JSON only.
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
-        max_tokens: 2000,
-        temperature: 0.1,
-        response_format: { type: "json_object" },
-      });
+      const completion = await openai.chat.completions.create(
+        {
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          max_tokens: 1200,
+          temperature: 0,
+          response_format: { type: "json_object" },
+        },
+        { signal: controller.signal }
+      );
+
+      clearTimeout(timeout);
 
       const raw = completion.choices[0]?.message?.content ?? "{}";
-      const parsed = JSON.parse(raw);
-      // AI may return { suggestions: [...] } or just [...]
-      suggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions ?? parsed.items ?? []);
+      suggestions = parseAiSuggestions(raw).slice(0, AI_MAX_SUGGESTIONS);
     } catch (error) {
       // If AI fails, the page can still work using database fallback suggestions.
       console.warn("[restock route] AI suggestion generation failed, using deterministic fallback:", error);

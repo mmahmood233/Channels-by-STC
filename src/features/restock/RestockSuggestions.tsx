@@ -167,6 +167,7 @@ export function RestockSuggestions() {
   // Suggestions displayed on the page.
   const [suggestions, setSuggestions] = useState<RestockSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
@@ -217,7 +218,10 @@ export function RestockSuggestions() {
     }
   }, []);
 
-  useEffect(() => { void fetchSuggestions(); }, [fetchSuggestions]);
+  useEffect(() => {
+    setMounted(true);
+    void fetchSuggestions();
+  }, [fetchSuggestions]);
 
   async function handleTransfer(s: RestockSuggestion) {
     // Each suggestion is tracked by device + destination store.
@@ -264,7 +268,7 @@ export function RestockSuggestions() {
         </div>
         <button
           onClick={() => fetchSuggestions({ force: true })}
-          disabled={loading}
+          disabled={mounted ? loading : false}
           className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-600 shadow-sm hover:bg-surface-50 disabled:opacity-50"
         >
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
